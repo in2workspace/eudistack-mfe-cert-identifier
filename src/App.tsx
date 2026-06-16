@@ -28,13 +28,11 @@ const ISSUANCE_PORTAL_URL =
   import.meta.env.VITE_ISSUANCE_PORTAL_URL ?? 'http://localhost:3001/portal';
 
 function handleAuthenticated(user: AuthenticatedUser) {
-  // PLACEHOLDER de handoff — ver nota de frontera arriba.
-  try {
-    sessionStorage.setItem('cgcom_identified_user', JSON.stringify(user));
-  } catch {
-    // sessionStorage no disponible — el Portal de Emisión deberá re-solicitar identidad.
-  }
-  window.location.href = `${ISSUANCE_PORTAL_URL}?identified=1`;
+  // TEMPORAL: sessionStorage no es cross-origin (localhost:3000 ≠ localhost:3001).
+  // Se pasa el usuario como URL param Base64 hasta que EUDISTACK-622 defina el
+  // contrato de handoff definitivo (token de un solo uso o nginx mismo origen).
+  const encoded = btoa(encodeURIComponent(JSON.stringify(user)));
+  window.location.href = `${ISSUANCE_PORTAL_URL}?identified=1&u=${encoded}`;
 }
 
 function handleBack() {

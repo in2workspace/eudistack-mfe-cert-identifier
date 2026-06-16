@@ -233,6 +233,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
   };
 
   const authMethods = [
+    /* TEMPORAL: deshabilitado para pruebas — solo Certificado Digital activo
     {
       id: 'eDNI' as AuthMethod,
       icon: CreditCard,
@@ -240,6 +241,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
       description: 'Autentícate usando tu DNI electrónico y un lector de tarjetas',
       recommended: false,
     },
+    */
     {
       id: 'certificate' as AuthMethod,
       icon: Shield,
@@ -247,6 +249,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
       description: 'Usa tu certificado digital instalado en este dispositivo (ej: FNMT)',
       recommended: true,
     },
+    /* TEMPORAL: deshabilitado para pruebas — solo Certificado Digital activo
     {
       id: 'claveMobile' as AuthMethod,
       icon: Smartphone,
@@ -261,6 +264,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
       description: 'Accede con tu credencial verificable DoctorID desde tu cartera digital',
       recommended: false,
     },
+    */
   ];
 
   return (
@@ -335,6 +339,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
               })}
             </div>
 
+            {/* TEMPORAL: oculto mientras solo está activo el método de Certificado Digital
             <Card className="p-6 bg-blue-50 border-blue-200">
               <div className="flex items-start gap-3">
                 <Shield className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1" />
@@ -350,6 +355,7 @@ export function ClaveAuthPage({ onAuthenticate, onBack }: ClaveAuthPageProps) {
                 </div>
               </div>
             </Card>
+            */}
           </div>
         )}
 
