@@ -16,7 +16,7 @@ type AuthMethod = 'eDNI' | 'certificate' | 'claveMobile' | 'doctorId' | null;
 const CERT_SERVER_URL = import.meta.env.VITE_CERT_SERVER_URL || 'https://localhost:3443';
 
 // --- OIDC DoctorID ---
-const OIDC_AUTHORIZATION_ENDPOINT = 'https://cgcom.127.0.0.1.nip.io:4443/verifier/oidc/authorize';
+const OIDC_AUTHORIZATION_ENDPOINT = 'https://cgcom.stg.eudistack.net/verifier/oidc/authorize';
 const OIDC_CLIENT_ID = import.meta.env.VITE_OIDC_CLIENT_ID ?? 'vc-auth-client-cgcom';
 const OIDC_PORTAL_REDIRECT_URI = import.meta.env.VITE_OIDC_PORTAL_REDIRECT_URI ?? 'http://localhost:3001/portal';
 const OIDC_SCOPE = 'openid profile email offline_access learcredential role';
