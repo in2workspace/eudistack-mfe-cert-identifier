@@ -3,6 +3,7 @@ import {
   DestroyRef,
   OnDestroy,
   OnInit,
+  Injector,
   effect,
   inject,
   output,
@@ -133,6 +134,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   // ── Services ──────────────────────────────────────────────────────────────
   private readonly oidcService = inject(OidcService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly injector = inject(Injector);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
@@ -161,10 +163,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
      * RF-001: abrir el popup de certificado automáticamente al entrar en
      * el paso 'authenticate' con método 'certificate' y sin datos previos.
      *
-     * Equivalente al segundo useEffect del React original.
-     * El effect re-ejecuta cuando cambia step, selectedMethod o certData.
-     * certLoading se lee como guarda: !loading previene doble disparo sin
-     * excluirlo artificialmente de las dependencias.
+     * effect() requiere injection context — se pasa { injector } para llamarlo desde ngOnInit.
      */
     effect(() => {
       const s = this.step();
@@ -175,7 +174,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       if (s === 'authenticate' && method === 'certificate' && data === null && !loading) {
         this.handleCertificateSelect();
       }
-    });
+    }, { injector: this.injector });
   }
 
   ngOnDestroy(): void {
