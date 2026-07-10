@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
-  certServerUrl: 'https://cgcom.127.0.0.1.nip.io:4443',
-  oidcClientId: 'vc-auth-client-cgcom',
-  oidcPortalRedirectUri: 'https://cgcom.127.0.0.1.nip.io:4443/identify/portal',
-  issuancePortalUrl: 'https://cgcom.127.0.0.1.nip.io:4443/identify/portal',
+  certServerUrl: window["env"]["certServerUrl"],
+  oidcClientId: window["env"]["oidcClientId"],
+  oidcPortalRedirectUri: window["env"]["oidcPortalRedirectUri"],
+  issuancePortalUrl: window["env"]["issuancePortalUrl"]
 };
