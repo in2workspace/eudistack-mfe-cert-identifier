@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * Design tokens — port from the React app's index.css (Tailwind v4 semantic vars).
+ * These resolve the CSS custom properties used by the UI primitives (border, ring, etc.).
+ */
+:root {
+  --radius: 0.5rem;
+
+  /* Neutral palette */
+  --background: #ffffff;
+  --foreground: #111827; /* gray-900 */
+
+  /* Card */
+  --card: #ffffff;
+  --card-foreground: #111827;
+
+  /* Muted */
+  --muted: #f9fafb; /* gray-50 */
+  --muted-foreground: #6b7280; /* gray-500 */
+
+  /* Accent */
+  --accent: #f3f4f6; /* gray-100 */
+  --accent-foreground: #111827;
+
+  /* Primary (CGCOM blue) */
+  --primary: #1a5276;
+  --primary-foreground: #ffffff;
+
+  /* Secondary */
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+
+  /* Destructive */
+  --destructive: #dc2626; /* red-600 */
+
+  /* Border / input / ring */
+  --border: #e5e7eb; /* gray-200 */
+  --input: #e5e7eb;
+  --input-background: #ffffff;
+  --ring: #9ca3af; /* gray-400 */
+}
+
+*,
+*::before,
+*::after {
+  border-color: var(--border);
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
