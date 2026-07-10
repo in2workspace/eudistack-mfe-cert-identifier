@@ -207,7 +207,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
 
     const popup = window.open(
-      `${environment.certServerUrl}/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
+      `${environment.certServerUrl}/identify/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
       'cert-auth',
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
