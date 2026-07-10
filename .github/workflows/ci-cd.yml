@@ -6,7 +6,7 @@ on:
 env:
   PROJECT_NAME: eudistack
   REGION_CODE: ew1
-  SPA_PREFIX: identify
+  SPA_PREFIX: cert
 
 permissions:
   contents: write
