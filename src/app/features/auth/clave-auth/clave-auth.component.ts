@@ -13,6 +13,9 @@ import {
   LucideShield,
   LucideCreditCard,
   LucideSmartphone,
+  LucideVideo,
+  LucideMic,
+  LucidePhoneOff,
   LucideArrowLeft,
   LucideChevronRight,
   LucideCheckCircle,
@@ -65,6 +68,9 @@ import { environment } from '../../../../environments/environment';
     LucideShield,
     LucideCreditCard,
     LucideSmartphone,
+    LucideVideo,
+    LucideMic,
+    LucidePhoneOff,
     LucideArrowLeft,
     LucideChevronRight,
     LucideCheckCircle,
@@ -99,6 +105,10 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   protected readonly certError = signal<string | null>(null);
   protected readonly certLoading = signal(false);
 
+  /** DoctorID OIDC callback state. */
+  protected readonly doctorIdLoading = signal(false);
+  protected readonly doctorIdError = signal<string | null>(null);
+
   // ── Auth method catalogue ─────────────────────────────────────────────────
   /**
    * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID están
@@ -110,25 +120,24 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     description: string;
     recommended: boolean;
   }> = [
-    /* TEMPORAL: deshabilitado — sólo Certificado Digital activo
     { id: 'eDNI', title: 'DNI Electrónico',
       description: 'Autentícate usando tu DNI electrónico y un lector de tarjetas',
       recommended: false },
-    */
     {
       id: 'certificate',
       title: 'Certificado Digital',
       description: 'Usa tu certificado digital instalado en este dispositivo (ej: FNMT)',
       recommended: true,
     },
-    /* TEMPORAL: deshabilitado — sólo Certificado Digital activo
     { id: 'claveMobile', title: 'Cl@ve Móvil',
       description: 'Autentícate usando la aplicación Cl@ve en tu smartphone',
       recommended: false },
     { id: 'doctorId', title: 'DoctorID',
       description: 'Accede con tu credencial verificable DoctorID desde tu cartera digital',
       recommended: false },
-    */
+    { id: 'video', title: 'VideoIdentificación',
+      description: 'Identifícate en tiempo real con un agente verificador mediante videollamada',
+      recommended: false },
   ];
 
   // ── Services ──────────────────────────────────────────────────────────────
@@ -153,6 +162,15 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
+    // Detect OIDC callback from DoctorID verifier flow
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    if (code && state) {
+      this.handleOidcCallback(code, state);
+      return;
+    }
+
     window.addEventListener('message', this.certMessageListener);
 
     this.destroyRef.onDestroy(() => {
@@ -170,8 +188,12 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       const method = this.selectedMethod();
       const data = this.certData();
       const loading = this.certLoading();
+      const error = this.certError();
 
-      if (s === 'authenticate' && method === 'certificate' && data === null && !loading) {
+      // Only auto-open the popup on first entry (no prior error).
+      // Without the error guard the effect re-fires after every failure,
+      // creating a silent tight loop in Edge (popup blocker returns null → !loading → effect → ...).
+      if (s === 'authenticate' && method === 'certificate' && data === null && !loading && error === null) {
         this.handleCertificateSelect();
       }
     }, { injector: this.injector });
@@ -275,7 +297,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
         phone: '+34 600 123 456',
         college: 'Colegio Oficial de Medicos de Madrid',
         specialty: 'Medicina Familiar y Comunitaria',
-        authMethod: this.selectedMethod() as 'eDNI' | 'claveMobile',
+        authMethod: this.selectedMethod() as 'eDNI' | 'claveMobile' | 'video',
       };
       this.emitAuthenticated(mockUser);
     }, 2000);
@@ -287,6 +309,33 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     } else {
       this.handleMockAuthenticate();
     }
+  }
+
+  private handleOidcCallback(code: string, state: string): void {
+    const savedState = sessionStorage.getItem('oidc_state');
+    if (state !== savedState) {
+      this.doctorIdError.set('Error de seguridad: state no coincide. Por favor, inicia el proceso de nuevo.');
+      this.selectedMethod.set('doctorId');
+      this.step.set('authenticate');
+      return;
+    }
+
+    // Clean URL without triggering navigation
+    history.replaceState({}, '', window.location.pathname);
+
+    this.selectedMethod.set('doctorId');
+    this.step.set('authenticate');
+    this.doctorIdLoading.set(true);
+    this.doctorIdError.set(null);
+
+    this.oidcService.completarFlujoOIDCPortal(code).then(user => {
+      this.emitAuthenticated(user);
+    }).catch((err: unknown) => {
+      this.doctorIdLoading.set(false);
+      this.doctorIdError.set(
+        err instanceof Error ? err.message : 'Error al completar la autenticación con DoctorID.'
+      );
+    });
   }
 
   protected handleBack(): void {

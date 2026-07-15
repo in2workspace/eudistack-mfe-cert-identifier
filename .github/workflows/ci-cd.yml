@@ -93,6 +93,7 @@ jobs:
         env:
           CERT_SERVER_URL: ${{ vars.CERT_SERVER_URL }}
           OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_AUTHORIZATION_ENDPOINT: ${{ vars.OIDC_AUTHORIZATION_ENDPOINT }}
           OIDC_PORTAL_REDIRECT_URI: ${{ vars.OIDC_PORTAL_REDIRECT_URI }}
           ISSUANCE_PORTAL_URL: ${{ vars.ISSUANCE_PORTAL_URL }}
         run: |
@@ -180,6 +181,7 @@ jobs:
         env:
           CERT_SERVER_URL: ${{ vars.CERT_SERVER_URL }}
           OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_AUTHORIZATION_ENDPOINT: ${{ vars.OIDC_AUTHORIZATION_ENDPOINT }}
           OIDC_PORTAL_REDIRECT_URI: ${{ vars.OIDC_PORTAL_REDIRECT_URI }}
           ISSUANCE_PORTAL_URL: ${{ vars.ISSUANCE_PORTAL_URL }}
         run: |

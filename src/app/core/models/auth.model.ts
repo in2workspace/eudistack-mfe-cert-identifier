@@ -41,9 +41,9 @@ export interface AuthenticatedUser {
   phone: string;
   college: string;
   specialty: string;
-  authMethod: 'eDNI' | 'certificate' | 'claveMobile';
+  authMethod: 'eDNI' | 'certificate' | 'claveMobile' | 'doctorId' | 'video';
   certificateData?: CertificateData;
 }
 
-/** Auth method identifiers — superset of AuthenticatedUser.authMethod (includes 'doctorId'). */
-export type AuthMethod = 'eDNI' | 'certificate' | 'claveMobile' | 'doctorId';
+/** Auth method identifiers. */
+export type AuthMethod = 'eDNI' | 'certificate' | 'claveMobile' | 'doctorId' | 'video';

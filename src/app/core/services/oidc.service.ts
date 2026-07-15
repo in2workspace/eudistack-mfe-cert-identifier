@@ -1,25 +1,15 @@
 import { Injectable } from '@angular/core';
+import { AuthenticatedUser } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
 
-/**
- * Lógica PKCE/OIDC para el flujo DoctorID.
- *
- * Puerto de las funciones `toBase64UrlSafe` e `iniciarFlujoOIDCPortal`
- * de ClaveAuthPage.tsx (React) convertidas a servicio Angular.
- *
- * Endpoints y scopes son equivalentes a los del repo React:
- *   OIDC_AUTHORIZATION_ENDPOINT → verifier CGCOM en STG
- *   OIDC_SCOPE                  → openid + learcredential + role
- */
+/** Lógica PKCE/OIDC para el flujo DoctorID. */
 @Injectable({ providedIn: 'root' })
 export class OidcService {
-  private readonly authorizationEndpoint =
-    'https://cgcom.stg.eudistack.net/verifier/oidc/authorize';
-
+  private readonly authorizationEndpoint = environment.oidcAuthorizationEndpoint;
+  private readonly tokenEndpoint = environment.oidcAuthorizationEndpoint.replace('/authorize', '/token');
   private readonly clientId = environment.oidcClientId;
   private readonly redirectUri = environment.oidcPortalRedirectUri;
-  private readonly scope =
-    'openid profile email offline_access learcredential role';
+  private readonly scope = 'openid doctorid';
 
   /**
    * Convierte un ArrayBuffer o Uint8Array a Base64-URL-safe sin padding.
@@ -74,5 +64,68 @@ export class OidcService {
     authUrl.searchParams.set('code_challenge_method', 'S256');
 
     window.location.href = authUrl.toString();
+  }
+
+  /**
+   * Intercambia el authorization code por tokens y extrae el AuthenticatedUser
+   * del id_token. Llamado por ClaveAuthComponent al detectar ?code= en la URL
+   * de vuelta desde el verifier.
+   */
+  async completarFlujoOIDCPortal(code: string): Promise<AuthenticatedUser> {
+    const codeVerifier = sessionStorage.getItem('oidc_code_verifier') ?? '';
+    sessionStorage.removeItem('oidc_code_verifier');
+    sessionStorage.removeItem('oidc_state');
+
+    const body = new URLSearchParams({
+      grant_type: 'authorization_code',
+      code,
+      redirect_uri: this.redirectUri,
+      client_id: this.clientId,
+      code_verifier: codeVerifier,
+    });
+
+    const response = await fetch(this.tokenEndpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString(),
+    });
+
+    if (!response.ok) {
+      const err = await response.text().catch(() => response.statusText);
+      throw new Error(`Token exchange failed: ${err}`);
+    }
+
+    const tokens = await response.json();
+    const idToken: string = tokens.id_token ?? '';
+
+    // Decode id_token payload (no signature verification — demo only)
+    let claims: Record<string, unknown> = {};
+    try {
+      const payload = idToken.split('.')[1] ?? '';
+      const padded = payload + '='.repeat((4 - (payload.length % 4)) % 4);
+      claims = JSON.parse(atob(padded.replace(/-/g, '+').replace(/_/g, '/')));
+    } catch {
+      // Fallback to empty claims — defaults below will apply
+    }
+
+    const givenName = String(claims['given_name'] != null ? claims['given_name'] : (claims['givenName'] ?? ''));
+    const familyName = String(
+      claims['family_name'] != null ? claims['family_name'] :
+      (claims['familyName'] != null ? claims['familyName'] : (claims['surname'] ?? ''))
+    );
+    const nameFull = [givenName, familyName].filter(Boolean).join(' ');
+    const name = String(claims['name'] != null ? claims['name'] : (nameFull || 'Médico DoctorID'));
+
+    return {
+      id: `DOCTORID-${String(claims['sub'] ?? Date.now())}`,
+      name,
+      collegiateNumber: String(claims['collegiateNumber'] ?? claims['collegiate_number'] ?? ''),
+      dni: String(claims['sub'] ?? ''),
+      email: String(claims['email'] ?? ''),
+      phone: String(claims['phone_number'] ?? ''),
+      college: String(claims['college'] ?? claims['organization'] ?? 'Colegio Oficial de Médicos'),
+      specialty: String(claims['specialty'] ?? ''),
+      authMethod: 'doctorId',
+    };
   }
 }
