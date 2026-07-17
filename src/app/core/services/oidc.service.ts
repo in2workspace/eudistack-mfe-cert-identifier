@@ -108,23 +108,22 @@ export class OidcService {
       // Fallback to empty claims — defaults below will apply
     }
 
-    const givenName = String(claims['given_name'] != null ? claims['given_name'] : (claims['givenName'] ?? ''));
+    const givenName = String(
+      claims['given_name'] ?? claims['givenName'] ?? claims['firstName'] ?? '');
     const familyName = String(
-      claims['family_name'] != null ? claims['family_name'] :
-      (claims['familyName'] != null ? claims['familyName'] : (claims['surname'] ?? ''))
-    );
+      claims['family_name'] ?? claims['familyName'] ?? claims['surname'] ?? claims['lastName'] ?? '');
     const nameFull = [givenName, familyName].filter(Boolean).join(' ');
     const name = String(claims['name'] != null ? claims['name'] : (nameFull || 'Médico DoctorID'));
 
     return {
-      id: `DOCTORID-${String(claims['sub'] ?? Date.now())}`,
+      id: `DOCTORID-${String(claims['registrationNumber'] ?? claims['sub'] ?? Date.now())}`,
       name,
-      collegiateNumber: String(claims['collegiateNumber'] ?? claims['collegiate_number'] ?? ''),
-      dni: String(claims['sub'] ?? ''),
-      email: String(claims['email'] ?? ''),
-      phone: String(claims['phone_number'] ?? ''),
-      college: String(claims['college'] ?? claims['organization'] ?? 'Colegio Oficial de Médicos'),
-      specialty: String(claims['specialty'] ?? ''),
+      collegiateNumber: String(claims['registrationNumber'] ?? ''),
+      dni:              String(claims['nationalId'] ?? ''),
+      email:            String(claims['email'] ?? ''),
+      phone:            String(claims['phone_number'] ?? ''),
+      college:          String(claims['provincialBoard'] ?? 'Colegio Oficial de Médicos'),
+      specialty:        String(claims['specialty'] ?? ''),
       authMethod: 'doctorId',
     };
   }
