@@ -202,9 +202,10 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
   /** Listener de postMessage — equivalente al useCallback+useEffect del original React. */
   private readonly certMessageListener = (event: MessageEvent): void => {
-    // Same-origin (AD-2): nginx sirve /cert/ y /identify/ bajo el mismo host que
-    // cualquier subdominio de tenant, evitando fijar un host cgcom (bug R-5).
-    if (event.origin !== window.location.origin) return;
+    // El popup de cert-auth carga en environment.certServerUrl, NO en el origin
+    // de esta app: en STG es un host ALB-bypass dedicado (puerto mTLS aparte)
+    // para que el navegador llegue realmente al listener mTLS del ALB.
+    if (event.origin !== environment.certServerUrl) return;
 
     if (event.data?.type === 'CERT_AUTH_SUCCESS') {
       this.certData.set(event.data.data as CertificateData);
@@ -284,7 +285,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
 
     const popup = window.open(
-      `/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
+      `${environment.certServerUrl}/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
       'cert-auth',
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
