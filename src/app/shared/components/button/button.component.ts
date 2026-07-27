@@ -56,13 +56,13 @@ export class ButtonComponent {
       'disabled:pointer-events-none disabled:opacity-50 outline-none';
 
     const variantClasses: Record<string, string> = {
-      default: 'bg-[#1a5276] text-white hover:bg-[#154060]',
+      default: 'bg-brand-primary text-brand-primary-contrast hover:opacity-90',
       destructive: 'bg-red-600 text-white hover:bg-red-700',
       outline:
         'border border-gray-200 bg-white text-gray-900 hover:bg-gray-50 hover:text-gray-900',
       secondary: 'bg-gray-100 text-gray-900 hover:bg-gray-200',
       ghost: 'hover:bg-gray-100 hover:text-gray-900',
-      link: 'text-[#1a5276] underline-offset-4 hover:underline',
+      link: 'text-brand-primary underline-offset-4 hover:underline',
     };
 
     const sizeClasses: Record<string, string> = {

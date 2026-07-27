@@ -8,7 +8,7 @@
           <app-button variant="ghost" extraClass="text-gray-600" (clicked)="handleBack()">
             <svg lucideArrowLeft class="w-5 h-5"></svg>
           </app-button>
-          <img src="cgcom-header-logo.svg" alt="CGCOM - Organización Médica Colegial" class="h-12 w-auto" />
+          <img [src]="branding.logoUrl()" [alt]="branding.appName()" class="h-12 w-auto" />
           <div class="border-l border-gray-300 pl-6">
             <p class="text-sm font-medium text-gray-700">Cartera de Identidad Digital</p>
           </div>
@@ -23,7 +23,7 @@
     @if (step() === 'select') {
       <div>
         <div class="text-center mb-12">
-          <div class="w-20 h-20 bg-[#1A5276] rounded-full flex items-center justify-center mx-auto mb-6">
+          <div class="w-20 h-20 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-6">
             <svg lucideShield class="w-10 h-10 text-white"></svg>
           </div>
           <h2 class="text-3xl font-bold text-gray-900 mb-4">
@@ -37,7 +37,7 @@
         <div class="grid gap-6 mb-8">
           @for (method of authMethods; track method.id) {
             <app-card
-              extraClass="p-6 cursor-pointer hover:shadow-lg transition-all hover:border-[#E67E22] relative"
+              extraClass="p-6 cursor-pointer hover:shadow-lg transition-all hover:border-brand-secondary relative"
               (click)="handleSelectMethod(method.id)"
             >
               @if (method.recommended) {
@@ -48,27 +48,27 @@
                 </div>
               }
               <div class="flex items-start gap-4">
-                <div class="w-14 h-14 bg-[#1A5276]/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div class="w-14 h-14 bg-brand-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   @if (method.id === 'certificate') {
-                    <svg lucideShield class="w-7 h-7 text-[#1A5276]"></svg>
+                    <svg lucideShield class="w-7 h-7 text-brand-primary"></svg>
                   }
                   @if (method.id === 'eDNI') {
-                    <svg lucideCreditCard class="w-7 h-7 text-[#1A5276]"></svg>
+                    <svg lucideCreditCard class="w-7 h-7 text-brand-primary"></svg>
                   }
                   @if (method.id === 'claveMobile') {
-                    <svg lucideSmartphone class="w-7 h-7 text-[#1A5276]"></svg>
+                    <svg lucideSmartphone class="w-7 h-7 text-brand-primary"></svg>
                   }
                   @if (method.id === 'doctorId') {
-                    <svg lucideShield class="w-7 h-7 text-[#1A5276]"></svg>
+                    <svg lucideShield class="w-7 h-7 text-brand-primary"></svg>
                   }
                   @if (method.id === 'video') {
-                    <svg lucideVideo class="w-7 h-7 text-[#1A5276]"></svg>
+                    <svg lucideVideo class="w-7 h-7 text-brand-primary"></svg>
                   }
                 </div>
                 <div class="flex-1">
                   <h3 class="font-bold text-gray-900 mb-2">{{ method.title }}</h3>
                   <p class="text-gray-600 mb-4">{{ method.description }}</p>
-                  <div class="flex items-center gap-2 text-[#E67E22]">
+                  <div class="flex items-center gap-2 text-brand-secondary">
                     <span class="font-semibold">Seleccionar este método</span>
                     <svg lucideChevronRight class="w-5 h-5"></svg>
                   </div>
@@ -96,21 +96,21 @@
 
           <!-- Method icon + title -->
           <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-[#1A5276]/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               @if (selectedMethod() === 'eDNI') {
-                <svg lucideCreditCard class="w-10 h-10 text-[#1A5276]"></svg>
+                <svg lucideCreditCard class="w-10 h-10 text-brand-primary"></svg>
               }
               @if (selectedMethod() === 'certificate') {
-                <svg lucideShield class="w-10 h-10 text-[#1A5276]"></svg>
+                <svg lucideShield class="w-10 h-10 text-brand-primary"></svg>
               }
               @if (selectedMethod() === 'claveMobile') {
-                <svg lucideSmartphone class="w-10 h-10 text-[#1A5276]"></svg>
+                <svg lucideSmartphone class="w-10 h-10 text-brand-primary"></svg>
               }
               @if (selectedMethod() === 'doctorId') {
-                <svg lucideShield class="w-10 h-10 text-[#1A5276]"></svg>
+                <svg lucideShield class="w-10 h-10 text-brand-primary"></svg>
               }
               @if (selectedMethod() === 'video') {
-                <svg lucideVideo class="w-10 h-10 text-[#1A5276]"></svg>
+                <svg lucideVideo class="w-10 h-10 text-brand-primary"></svg>
               }
             </div>
             <h3 class="text-2xl font-bold text-gray-900 mb-2">
@@ -174,7 +174,7 @@
                 <!-- Loading: popup abierto, esperando selección -->
                 @if (certLoading()) {
                   <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideLoader2 class="w-12 h-12 text-[#1A5276] mx-auto mb-4 animate-spin"></svg>
+                    <svg lucideLoader2 class="w-12 h-12 text-brand-primary mx-auto mb-4 animate-spin"></svg>
                     <p class="text-gray-700 font-semibold mb-2">
                       Esperando selección de certificado...
                     </p>
@@ -194,9 +194,9 @@
                     </div>
                   </div>
                   <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideShield class="w-12 h-12 text-[#1A5276] mx-auto mb-4"></svg>
+                    <svg lucideShield class="w-12 h-12 text-brand-primary mx-auto mb-4"></svg>
                     <app-button
-                      extraClass="bg-[#1A5276] hover:bg-[#154060] text-white"
+                      extraClass="bg-brand-primary hover:opacity-90 text-brand-primary-contrast"
                       [disabled]="certLoading()"
                       (clicked)="handleCertificateSelect()"
                     >
@@ -237,7 +237,7 @@
                 <!-- Datos del titular -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
                   <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideUser class="w-5 h-5 text-[#1A5276]"></svg>
+                    <svg lucideUser class="w-5 h-5 text-brand-primary"></svg>
                     Datos del titular
                   </h4>
                   <div class="grid md:grid-cols-2 gap-4">
@@ -319,7 +319,7 @@
                 <!-- Emisor del certificado -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
                   <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideShield class="w-5 h-5 text-[#1A5276]"></svg>
+                    <svg lucideShield class="w-5 h-5 text-brand-primary"></svg>
                     Emisor del certificado
                   </h4>
                   <div class="grid md:grid-cols-2 gap-4">
@@ -340,7 +340,7 @@
 
                 <!-- Validez -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
-                  <svg lucideCalendar class="w-5 h-5 text-[#1A5276] flex-shrink-0"></svg>
+                  <svg lucideCalendar class="w-5 h-5 text-brand-primary flex-shrink-0"></svg>
                   <div>
                     <p class="text-sm text-gray-700">
                       <strong>Validez:</strong>
@@ -397,7 +397,7 @@
 
               @if (doctorIdLoading()) {
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                  <svg lucideLoader2 class="w-12 h-12 text-[#1A5276] mx-auto mb-4 animate-spin"></svg>
+                  <svg lucideLoader2 class="w-12 h-12 text-brand-primary mx-auto mb-4 animate-spin"></svg>
                   <p class="text-gray-700 font-semibold mb-1">Procesando credencial DoctorID...</p>
                   <p class="text-gray-500 text-sm">Verificando tu identidad con el sistema DoctorID</p>
                 </div>
@@ -413,7 +413,7 @@
                 </div>
                 <div class="text-center">
                   <app-button
-                    extraClass="bg-[#1A5276] hover:bg-[#154060] text-white"
+                    extraClass="bg-brand-primary hover:opacity-90 text-brand-primary-contrast"
                     (clicked)="handleGoBackToSelect()"
                   >
                     Volver a intentarlo
@@ -513,7 +513,7 @@
               Cancelar
             </app-button>
             <app-button
-              extraClass="flex-1 bg-[#E67E22] hover:bg-[#D35400] text-white"
+              extraClass="flex-1 bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
               [disabled]="isAuthenticating() || doctorIdLoading() || selectedMethod() === 'doctorId' || (selectedMethod() === 'certificate' && !certData())"
               (clicked)="handleAuthenticate()"
             >
@@ -532,7 +532,7 @@
         <div class="mt-8 text-center">
           <p class="text-sm text-gray-600">
             ¿Problemas con la autenticación?&nbsp;
-            <a href="#" class="text-[#E67E22] font-semibold hover:underline">
+            <a href="#" class="text-brand-secondary font-semibold hover:underline">
               Ver guía de ayuda
             </a>
           </p>
