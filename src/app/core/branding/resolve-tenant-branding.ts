@@ -22,10 +22,50 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/**
+ * Luminancia relativa (WCAG) de un color hex de 3/6 dígitos — 0 (negro) a 1 (blanco).
+ */
+function relativeLuminance(hex: string): number {
+  const clean = hex.replace('#', '');
+  const full = clean.length === 3 ? clean.split('').map(c => c + c).join('') : clean;
+  const [r, g, b] = [0, 2, 4].map(i => parseInt(full.slice(i, i + 2), 16) / 255);
+  const linear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * linear(r) + 0.7152 * linear(g) + 0.0722 * linear(b);
+}
+
+/** Por encima de este umbral, un color se considera "casi blanco" — invisible o ilegible sobre fondo claro. */
+const NEAR_WHITE_LUMINANCE = 0.9;
+
+function isNearWhite(hex: string): boolean {
+  try {
+    return relativeLuminance(hex) > NEAR_WHITE_LUMINANCE;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Deriva `--brand-accent`/`--brand-accent-contrast` para elementos sobre fondo
+ * blanco (iconos, texto de botón) donde ni `primary` ni `secondary` son
+ * universalmente seguros: CGCOM tiene `primaryColor` blanco (pensado como
+ * superficie, no como acento) y Calidalia tiene `secondaryColor` amarillo
+ * (tan claro como el blanco, ilegible sobre blanco). Se prioriza `primary`
+ * salvo que sea casi blanco, en cuyo caso se usa `secondary`.
+ */
+function deriveAccentTokens(tokens: Record<string, string>): Record<string, string> {
+  const primaryIsUsable = !isNearWhite(tokens['--brand-primary']);
+  return {
+    '--brand-accent': primaryIsUsable ? tokens['--brand-primary'] : tokens['--brand-secondary'],
+    '--brand-accent-contrast': primaryIsUsable
+      ? tokens['--brand-primary-contrast']
+      : tokens['--brand-secondary-contrast'],
+  };
+}
+
 function sanitizeTokens(branding: BrandingDescriptor | undefined): Record<string, string> {
   const tokens: Record<string, string> = { ...DEFAULT_EUDISTACK_BRANDING.tokens };
   if (!branding || typeof branding !== 'object') {
-    return tokens;
+    return { ...tokens, ...deriveAccentTokens(tokens) };
   }
   for (const [token, field] of Object.entries(TOKEN_FIELD_MAP)) {
     const value = branding[field];
@@ -33,7 +73,7 @@ function sanitizeTokens(branding: BrandingDescriptor | undefined): Record<string
       tokens[token] = value.trim();
     }
   }
-  return tokens;
+  return { ...tokens, ...deriveAccentTokens(tokens) };
 }
 
 function sanitizeField(raw: unknown, fallback: string): string {

@@ -25,6 +25,10 @@ export const DEFAULT_EUDISTACK_BRANDING: Readonly<TenantBranding> = Object.freez
     '--brand-primary-contrast': '#ffffff',
     '--brand-secondary': '#00BFA6',
     '--brand-secondary-contrast': '#ffffff',
+    // Color de acento seguro sobre fondo blanco (icono/texto de botón) —
+    // ver deriveAccentTokens() en resolve-tenant-branding.ts.
+    '--brand-accent': '#0F2B5B',
+    '--brand-accent-contrast': '#ffffff',
   }),
   // El header de este MFE es blanco: se usa la variante oscura del logo
   // (contraste sobre fondo claro), nunca la clara `logo.svg` (pensada para

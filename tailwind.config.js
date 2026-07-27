@@ -9,6 +9,8 @@ module.exports = {
           'primary-contrast': 'var(--brand-primary-contrast)',
           secondary: 'var(--brand-secondary)',
           'secondary-contrast': 'var(--brand-secondary-contrast)',
+          accent: 'var(--brand-accent)',
+          'accent-contrast': 'var(--brand-accent-contrast)',
         },
       },
       borderRadius: {
