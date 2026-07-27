@@ -3,6 +3,16 @@ module.exports = {
   content: ['./src/**/*.{ts,html}'],
   theme: {
     extend: {
+      colors: {
+        brand: {
+          primary: 'var(--brand-primary)',
+          'primary-contrast': 'var(--brand-primary-contrast)',
+          secondary: 'var(--brand-secondary)',
+          'secondary-contrast': 'var(--brand-secondary-contrast)',
+          accent: 'var(--brand-accent)',
+          'accent-contrast': 'var(--brand-accent-contrast)',
+        },
+      },
       borderRadius: {
         // Match the React design system --radius value
         DEFAULT: '0.5rem',

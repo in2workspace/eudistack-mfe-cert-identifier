@@ -25,13 +25,25 @@
   --accent: #f3f4f6; /* gray-100 */
   --accent-foreground: #111827;
 
-  /* Primary (CGCOM blue) */
+  /* Primary */
   --primary: #1a5276;
   --primary-foreground: #ffffff;
 
   /* Secondary */
   --secondary: #f3f4f6;
   --secondary-foreground: #111827;
+
+  /*
+   * Tenant branding tokens — sobrescritos en runtime por BrandingService.apply()
+   * antes del primer render (app initializer). Estos son el neutro EUDIStack,
+   * para que no haya flash sin JS/antes de resolver el tenant.
+   */
+  --brand-primary: #0f2b5b;
+  --brand-primary-contrast: #ffffff;
+  --brand-secondary: #00bfa6;
+  --brand-secondary-contrast: #ffffff;
+  --brand-accent: #0f2b5b;
+  --brand-accent-contrast: #ffffff;
 
   /* Destructive */
   --destructive: #dc2626; /* red-600 */

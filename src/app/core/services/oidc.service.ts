@@ -1,15 +1,27 @@
 import { Injectable } from '@angular/core';
 import { AuthenticatedUser } from '../models/auth.model';
 import { environment } from '../../../environments/environment';
+import { resolveTenantIdentity } from '../branding/resolve-tenant-identity';
 
-/** Lógica PKCE/OIDC para el flujo DoctorID. */
+/**
+ * Lógica PKCE/OIDC para el flujo DoctorID/EmployeeID.
+ *
+ * client_id, endpoints y scope se resuelven por tenant (R-5): antes estaban
+ * fijos a cgcom (`vc-auth-client-cgcom`, host `cgcom.*`, scope `doctorid`),
+ * así que cualquier otro tenant terminaba autenticándose contra el cliente
+ * OIDC y el verificador de CGCOM. `client_id`/`redirect_uri` deben coincidir
+ * con lo registrado en `clients.yaml` del Verifier para el tenant actual —
+ * solo CGCOM tiene el scope `doctorid`; el resto usa `learcredential`
+ * (ya registrado para todos los tenants).
+ */
 @Injectable({ providedIn: 'root' })
 export class OidcService {
-  private readonly authorizationEndpoint = environment.oidcAuthorizationEndpoint;
-  private readonly tokenEndpoint = environment.oidcAuthorizationEndpoint.replace('/authorize', '/token');
-  private readonly clientId = environment.oidcClientId;
-  private readonly redirectUri = environment.oidcPortalRedirectUri;
-  private readonly scope = 'openid doctorid';
+  private readonly tenant = resolveTenantIdentity(window.location, environment) ?? 'cgcom';
+  private readonly authorizationEndpoint = `${window.location.origin}/verifier/oidc/authorize`;
+  private readonly tokenEndpoint = `${window.location.origin}/verifier/oidc/token`;
+  private readonly clientId = `vc-auth-client-${this.tenant}`;
+  private readonly redirectUri = `${window.location.origin}/cert`;
+  private readonly scope = this.tenant === 'cgcom' ? 'openid doctorid' : 'openid learcredential';
 
   /**
    * Convierte un ArrayBuffer o Uint8Array a Base64-URL-safe sin padding.
@@ -108,21 +120,30 @@ export class OidcService {
       // Fallback to empty claims — defaults below will apply
     }
 
+    // learcredential (resto de tenants) trae los datos anidados bajo
+    // mandate.mandatee/mandator en vez de los claims planos de doctorid.
+    const mandate = claims['mandate'] as Record<string, unknown> | undefined;
+    const mandatee = (mandate?.['mandatee'] as Record<string, unknown>) ?? {};
+    const mandator = (mandate?.['mandator'] as Record<string, unknown>) ?? {};
+
     const givenName = String(
-      claims['given_name'] ?? claims['givenName'] ?? claims['firstName'] ?? '');
+      claims['given_name'] ?? claims['givenName'] ?? claims['firstName'] ?? mandatee['firstName'] ?? '');
     const familyName = String(
-      claims['family_name'] ?? claims['familyName'] ?? claims['surname'] ?? claims['lastName'] ?? '');
+      claims['family_name'] ?? claims['familyName'] ?? claims['surname'] ?? claims['lastName'] ?? mandatee['lastName'] ?? '');
     const nameFull = [givenName, familyName].filter(Boolean).join(' ');
-    const name = String(claims['name'] != null ? claims['name'] : (nameFull || 'Médico DoctorID'));
+    const defaultName = this.tenant === 'cgcom' ? 'Médico DoctorID' : 'Empleado EmployeeID';
+    const name = String(claims['name'] != null ? claims['name'] : (nameFull || defaultName));
+
+    const defaultCollege = this.tenant === 'cgcom' ? 'Colegio Oficial de Médicos' : 'Empresa';
 
     return {
-      id: `DOCTORID-${String(claims['registrationNumber'] ?? claims['sub'] ?? Date.now())}`,
+      id: `${this.tenant === 'cgcom' ? 'DOCTORID' : 'EMPLOYEEID'}-${String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? claims['sub'] ?? Date.now())}`,
       name,
-      collegiateNumber: String(claims['registrationNumber'] ?? ''),
+      collegiateNumber: String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? ''),
       dni:              String(claims['nationalId'] ?? ''),
-      email:            String(claims['email'] ?? ''),
+      email:            String(claims['email'] ?? mandatee['email'] ?? ''),
       phone:            String(claims['phone_number'] ?? ''),
-      college:          String(claims['provincialBoard'] ?? 'Colegio Oficial de Médicos'),
+      college:          String(claims['provincialBoard'] ?? mandator['organization'] ?? defaultCollege),
       specialty:        String(claims['specialty'] ?? ''),
       authMethod: 'doctorId',
     };

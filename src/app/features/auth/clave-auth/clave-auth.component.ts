@@ -30,11 +30,60 @@ import {
 
 import { AuthMethod, AuthenticatedUser, CertificateData } from '../../../core/models/auth.model';
 import { OidcService } from '../../../core/services/oidc.service';
+import { BrandingService } from '../../../core/branding/branding.service';
+import { resolveTenantIdentity } from '../../../core/branding/resolve-tenant-identity';
+import { environment } from '../../../../environments/environment';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { CardComponent } from '../../../shared/components/card/card.component';
 import { InputComponent } from '../../../shared/components/input/input.component';
 import { LabelComponent } from '../../../shared/components/label/label.component';
-import { environment } from '../../../../environments/environment';
+
+/** Perfil demo por tenant (nombre/departamento/puesto): CGCOM emite para médicos colegiados; el resto, para empleados del grupo. */
+interface DemoProfile {
+  mockId: string;
+  mockName: string;
+  mockEmail: string;
+  college: string;
+  specialty: string;
+}
+
+const DOCTOR_DEMO_PROFILE: DemoProfile = {
+  mockId: 'DR-12345',
+  mockName: 'Dra. Maria Garcia Lopez',
+  mockEmail: 'maria.garcia@ejemplo.com',
+  college: 'Col·legi de Metges de Barcelona',
+  specialty: 'Oftalmología',
+};
+
+const EMPLOYEE_DEMO_PROFILE: DemoProfile = {
+  mockId: 'EMP-12345',
+  mockName: 'María García López',
+  mockEmail: 'maria.garcia@altia.es',
+  college: 'Altia Consultoría y Tecnología',
+  specialty: 'Consultor de Tecnología',
+};
+
+const CALIDALIA_DEMO_PROFILE: DemoProfile = {
+  ...EMPLOYEE_DEMO_PROFILE,
+  college: 'Gallo',
+  specialty: 'Responsable de Calidad',
+};
+
+/** Perfiles demo por tenant específico; el resto de tenants cae al genérico de empleado. */
+const DEMO_PROFILES_BY_TENANT: Record<string, DemoProfile> = {
+  cgcom: DOCTOR_DEMO_PROFILE,
+  calidalia: CALIDALIA_DEMO_PROFILE,
+};
+
+function resolveDemoProfile(): DemoProfile {
+  const tenant = resolveTenantIdentity(window.location, environment);
+  return (tenant && DEMO_PROFILES_BY_TENANT[tenant]) || EMPLOYEE_DEMO_PROFILE;
+}
+
+/** Único tenant con emisión DoctorID hoy; el resto ve la credencial genérica de empleado (mismo criterio que el Portal de Emisión). */
+function resolveCredentialLabel(): string {
+  return resolveTenantIdentity(window.location, environment) === 'cgcom' ? 'DoctorID' : 'EmployeeID';
+}
 
 /**
  * ClaveAuthComponent — componente principal de identificación.
@@ -49,9 +98,9 @@ import { environment } from '../../../../environments/environment';
  *   onAuthenticate (prop)    → @Output() authenticated
  *   onBack (prop)            → @Output() back  +  window.history.back() interno
  *
- * El componente también hace el redirect a issuancePortalUrl directamente
- * (equivalente al handleAuthenticated de App.tsx) para que funcione tanto
- * embebido como cargado por router.
+ * El componente también hace el redirect a /identify/portal (same-origin)
+ * directamente (equivalente al handleAuthenticated de App.tsx) para que
+ * funcione tanto embebido como cargado por router.
  *
  * Iconos: @lucide/angular — directivas standalone svg[lucide*].
  */
@@ -109,10 +158,13 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   protected readonly doctorIdLoading = signal(false);
   protected readonly doctorIdError = signal<string | null>(null);
 
+  /** DoctorID para CGCOM, EmployeeID para el resto de tenants. */
+  protected readonly credentialLabel = resolveCredentialLabel();
+
   // ── Auth method catalogue ─────────────────────────────────────────────────
   /**
-   * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID están
-   * comentados — sólo Certificado Digital está habilitado.
+   * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID/EmployeeID
+   * están comentados — sólo Certificado Digital está habilitado.
    */
   protected readonly authMethods: Array<{
     id: AuthMethod;
@@ -132,10 +184,10 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     { id: 'claveMobile', title: 'Cl@ve Móvil',
       description: 'Autentícate usando la aplicación Cl@ve en tu smartphone',
       recommended: false },
-    { id: 'doctorId', title: 'DoctorID',
-      description: 'Accede con tu credencial verificable DoctorID desde tu cartera digital',
+    { id: 'doctorId', title: this.credentialLabel,
+      description: `Accede con tu credencial verificable ${this.credentialLabel} desde tu cartera digital`,
       recommended: false },
-    { id: 'video', title: 'VideoIdentificación',
+    { id: 'video', title: 'Video Identificación',
       description: 'Identifícate en tiempo real con un agente verificador mediante videollamada',
       recommended: false },
   ];
@@ -144,12 +196,15 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   private readonly oidcService = inject(OidcService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
+  protected readonly branding = inject(BrandingService);
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   /** Listener de postMessage — equivalente al useCallback+useEffect del original React. */
   private readonly certMessageListener = (event: MessageEvent): void => {
-    if (event.origin !== environment.certServerUrl) return;
+    // Same-origin (AD-2): nginx sirve /cert/ y /identify/ bajo el mismo host que
+    // cualquier subdominio de tenant, evitando fijar un host cgcom (bug R-5).
+    if (event.origin !== window.location.origin) return;
 
     if (event.data?.type === 'CERT_AUTH_SUCCESS') {
       this.certData.set(event.data.data as CertificateData);
@@ -229,7 +284,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
 
     const popup = window.open(
-      `${environment.certServerUrl}/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
+      `/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
       'cert-auth',
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
@@ -268,6 +323,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       [sub.givenName, sub.surname].filter(Boolean).join(' ') ||
       'Desconocido';
 
+    const profile = resolveDemoProfile();
     const user: AuthenticatedUser = {
       id: `CERT-${sub.serialNumber ?? Date.now()}`,
       name,
@@ -275,8 +331,8 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       dni: sub.serialNumber ?? '',
       email: sub.emailAddress ?? 'bernat.lopez@altia.es',
       phone: '',
-      college: 'Col·legi de Metges de Barcelona',
-      specialty: 'Oftalmología',
+      college: profile.college,
+      specialty: profile.specialty,
       authMethod: 'certificate',
       certificateData: cert,
     };
@@ -287,16 +343,17 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   /** Autentica con datos mock — eDNI y Cl@ve Móvil (entorno demo). */
   protected handleMockAuthenticate(): void {
     this.isAuthenticating.set(true);
+    const profile = resolveDemoProfile();
     setTimeout(() => {
       const mockUser: AuthenticatedUser = {
-        id: 'DR-12345',
-        name: 'Dra. Maria Garcia Lopez',
+        id: profile.mockId,
+        name: profile.mockName,
         collegiateNumber: '282912345',
         dni: this.dni(),
-        email: 'maria.garcia@ejemplo.com',
+        email: profile.mockEmail,
         phone: '+34 600 123 456',
-        college: 'Colegio Oficial de Medicos de Madrid',
-        specialty: 'Medicina Familiar y Comunitaria',
+        college: profile.college,
+        specialty: profile.specialty,
         authMethod: this.selectedMethod() as 'eDNI' | 'claveMobile' | 'video',
       };
       this.emitAuthenticated(mockUser);
@@ -333,7 +390,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     }).catch((err: unknown) => {
       this.doctorIdLoading.set(false);
       this.doctorIdError.set(
-        err instanceof Error ? err.message : 'Error al completar la autenticación con DoctorID.'
+        err instanceof Error ? err.message : `Error al completar la autenticación con ${this.credentialLabel}.`
       );
     });
   }
@@ -375,6 +432,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   private emitAuthenticated(user: AuthenticatedUser): void {
     this.authenticated.emit(user);
     const encoded = btoa(encodeURIComponent(JSON.stringify(user)));
-    window.location.href = `${environment.issuancePortalUrl}?identified=1&u=${encoded}`;
+    window.location.href = `/identify/portal?identified=1&u=${encoded}`;
   }
 }
