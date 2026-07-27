@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **DoctorID OIDC callback handling**: `ClaveAuthComponent.ngOnInit()` detects the OIDC authorization-code callback (`?code=&state=`), validates the state parameter, cleans the URL, and completes the flow via `OidcService.completarFlujoOIDCPortal()` — redirecting the user to the issuance portal on success. The redirect URI is now `/cert` instead of `/identify/portal`, so the callback lands on the cert-identifier MFE.
 - **`OidcService.completarFlujoOIDCPortal(code)`**: exchanges the authorization code for tokens at the verifier token endpoint (PKCE, `authorization_code`), decodes the `id_token` JWT payload, and returns an `AuthenticatedUser` with `authMethod: 'doctorId'`.
-- **VideoIdentificación method**: new auth method entry in the selector; simulated video call screen with agent placeholder, self-view thumbnail, connection status badge, duration counter and call controls (mute, camera toggle, hang-up).
+- **Video Identificación method**: new auth method entry in the selector; simulated video call screen with agent placeholder, self-view thumbnail, connection status badge, duration counter and call controls (mute, camera toggle, hang-up).
 
 ### Fixed
 

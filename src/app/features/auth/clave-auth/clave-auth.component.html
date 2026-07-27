@@ -23,8 +23,8 @@
     @if (step() === 'select') {
       <div>
         <div class="text-center mb-12">
-          <div class="w-20 h-20 bg-brand-primary rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg lucideShield class="w-10 h-10 text-white"></svg>
+          <div class="w-20 h-20 bg-brand-secondary rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
           </div>
           <h2 class="text-3xl font-bold text-gray-900 mb-4">
             Autenticación Segura
@@ -48,21 +48,21 @@
                 </div>
               }
               <div class="flex items-start gap-4">
-                <div class="w-14 h-14 bg-brand-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+                <div class="w-14 h-14 bg-brand-secondary/10 rounded-lg flex items-center justify-center flex-shrink-0">
                   @if (method.id === 'certificate') {
-                    <svg lucideShield class="w-7 h-7 text-brand-primary"></svg>
+                    <svg lucideShield class="w-7 h-7 text-brand-secondary"></svg>
                   }
                   @if (method.id === 'eDNI') {
-                    <svg lucideCreditCard class="w-7 h-7 text-brand-primary"></svg>
+                    <svg lucideCreditCard class="w-7 h-7 text-brand-secondary"></svg>
                   }
                   @if (method.id === 'claveMobile') {
-                    <svg lucideSmartphone class="w-7 h-7 text-brand-primary"></svg>
+                    <svg lucideSmartphone class="w-7 h-7 text-brand-secondary"></svg>
                   }
                   @if (method.id === 'doctorId') {
-                    <svg lucideShield class="w-7 h-7 text-brand-primary"></svg>
+                    <svg lucideShield class="w-7 h-7 text-brand-secondary"></svg>
                   }
                   @if (method.id === 'video') {
-                    <svg lucideVideo class="w-7 h-7 text-brand-primary"></svg>
+                    <svg lucideVideo class="w-7 h-7 text-brand-secondary"></svg>
                   }
                 </div>
                 <div class="flex-1">
@@ -96,35 +96,35 @@
 
           <!-- Method icon + title -->
           <div class="text-center mb-8">
-            <div class="w-20 h-20 bg-brand-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
+            <div class="w-20 h-20 bg-brand-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6">
               @if (selectedMethod() === 'eDNI') {
-                <svg lucideCreditCard class="w-10 h-10 text-brand-primary"></svg>
+                <svg lucideCreditCard class="w-10 h-10 text-brand-secondary"></svg>
               }
               @if (selectedMethod() === 'certificate') {
-                <svg lucideShield class="w-10 h-10 text-brand-primary"></svg>
+                <svg lucideShield class="w-10 h-10 text-brand-secondary"></svg>
               }
               @if (selectedMethod() === 'claveMobile') {
-                <svg lucideSmartphone class="w-10 h-10 text-brand-primary"></svg>
+                <svg lucideSmartphone class="w-10 h-10 text-brand-secondary"></svg>
               }
               @if (selectedMethod() === 'doctorId') {
-                <svg lucideShield class="w-10 h-10 text-brand-primary"></svg>
+                <svg lucideShield class="w-10 h-10 text-brand-secondary"></svg>
               }
               @if (selectedMethod() === 'video') {
-                <svg lucideVideo class="w-10 h-10 text-brand-primary"></svg>
+                <svg lucideVideo class="w-10 h-10 text-brand-secondary"></svg>
               }
             </div>
             <h3 class="text-2xl font-bold text-gray-900 mb-2">
               @if (selectedMethod() === 'eDNI') { Autenticación con DNI Electrónico }
               @if (selectedMethod() === 'certificate') { Autenticación con Certificado Digital }
               @if (selectedMethod() === 'claveMobile') { Autenticación con Cl&#64;ve Móvil }
-              @if (selectedMethod() === 'doctorId') { Autenticación con DoctorID }
-              @if (selectedMethod() === 'video') { VideoIdentificación }
+              @if (selectedMethod() === 'doctorId') { Autenticación con {{ credentialLabel }} }
+              @if (selectedMethod() === 'video') { Video Identificación }
             </h3>
             <p class="text-gray-600">
               @if (selectedMethod() === 'eDNI') { Introduce tu DNI y conecta tu lector de tarjetas }
               @if (selectedMethod() === 'certificate') { Selecciona tu certificado digital (ej: FNMT) instalado en este dispositivo }
               @if (selectedMethod() === 'claveMobile') { Escanea el código QR con la app Cl&#64;ve }
-              @if (selectedMethod() === 'doctorId') { Procesando tu credencial DoctorID desde la cartera digital }
+              @if (selectedMethod() === 'doctorId') { Procesando tu credencial {{ credentialLabel }} desde la cartera digital }
               @if (selectedMethod() === 'video') { Conecta con un agente verificador en tiempo real }
             </p>
           </div>
@@ -174,7 +174,7 @@
                 <!-- Loading: popup abierto, esperando selección -->
                 @if (certLoading()) {
                   <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideLoader2 class="w-12 h-12 text-brand-primary mx-auto mb-4 animate-spin"></svg>
+                    <svg lucideLoader2 class="w-12 h-12 text-brand-secondary mx-auto mb-4 animate-spin"></svg>
                     <p class="text-gray-700 font-semibold mb-2">
                       Esperando selección de certificado...
                     </p>
@@ -194,9 +194,9 @@
                     </div>
                   </div>
                   <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideShield class="w-12 h-12 text-brand-primary mx-auto mb-4"></svg>
+                    <svg lucideShield class="w-12 h-12 text-brand-secondary mx-auto mb-4"></svg>
                     <app-button
-                      extraClass="bg-brand-primary hover:opacity-90 text-brand-primary-contrast"
+                      extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
                       [disabled]="certLoading()"
                       (clicked)="handleCertificateSelect()"
                     >
@@ -237,7 +237,7 @@
                 <!-- Datos del titular -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
                   <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideUser class="w-5 h-5 text-brand-primary"></svg>
+                    <svg lucideUser class="w-5 h-5 text-brand-secondary"></svg>
                     Datos del titular
                   </h4>
                   <div class="grid md:grid-cols-2 gap-4">
@@ -319,7 +319,7 @@
                 <!-- Emisor del certificado -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
                   <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideShield class="w-5 h-5 text-brand-primary"></svg>
+                    <svg lucideShield class="w-5 h-5 text-brand-secondary"></svg>
                     Emisor del certificado
                   </h4>
                   <div class="grid md:grid-cols-2 gap-4">
@@ -340,7 +340,7 @@
 
                 <!-- Validez -->
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
-                  <svg lucideCalendar class="w-5 h-5 text-brand-primary flex-shrink-0"></svg>
+                  <svg lucideCalendar class="w-5 h-5 text-brand-secondary flex-shrink-0"></svg>
                   <div>
                     <p class="text-sm text-gray-700">
                       <strong>Validez:</strong>
@@ -397,9 +397,9 @@
 
               @if (doctorIdLoading()) {
                 <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                  <svg lucideLoader2 class="w-12 h-12 text-brand-primary mx-auto mb-4 animate-spin"></svg>
-                  <p class="text-gray-700 font-semibold mb-1">Procesando credencial DoctorID...</p>
-                  <p class="text-gray-500 text-sm">Verificando tu identidad con el sistema DoctorID</p>
+                  <svg lucideLoader2 class="w-12 h-12 text-brand-secondary mx-auto mb-4 animate-spin"></svg>
+                  <p class="text-gray-700 font-semibold mb-1">Procesando credencial {{ credentialLabel }}...</p>
+                  <p class="text-gray-500 text-sm">Verificando tu identidad con el sistema {{ credentialLabel }}</p>
                 </div>
               }
 
@@ -413,7 +413,7 @@
                 </div>
                 <div class="text-center">
                   <app-button
-                    extraClass="bg-brand-primary hover:opacity-90 text-brand-primary-contrast"
+                    extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
                     (clicked)="handleGoBackToSelect()"
                   >
                     Volver a intentarlo
@@ -425,7 +425,7 @@
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
                   <svg lucideShield class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></svg>
                   <p class="text-sm text-blue-700">
-                    Serás redirigido al verificador CGCOM para presentar tu credencial DoctorID desde tu cartera digital.
+                    Serás redirigido al verificador de {{ branding.appName() }} para presentar tu credencial {{ credentialLabel }} desde tu cartera digital.
                   </p>
                 </div>
               }
@@ -494,7 +494,7 @@
 
               <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
                 <p class="text-sm text-gray-700">
-                  <strong>Nota de demostración:</strong> Esta es una simulación de la interfaz de VideoIdentificación.
+                  <strong>Nota de demostración:</strong> Esta es una simulación de la interfaz de Video Identificación.
                   En producción, se establecerá una videollamada real con un agente verificador acreditado.
                 </p>
               </div>

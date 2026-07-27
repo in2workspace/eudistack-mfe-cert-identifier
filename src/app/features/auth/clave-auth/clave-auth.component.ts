@@ -80,6 +80,11 @@ function resolveDemoProfile(): DemoProfile {
   return (tenant && DEMO_PROFILES_BY_TENANT[tenant]) || EMPLOYEE_DEMO_PROFILE;
 }
 
+/** Único tenant con emisión DoctorID hoy; el resto ve la credencial genérica de empleado (mismo criterio que el Portal de Emisión). */
+function resolveCredentialLabel(): string {
+  return resolveTenantIdentity(window.location, environment) === 'cgcom' ? 'DoctorID' : 'EmployeeID';
+}
+
 /**
  * ClaveAuthComponent — componente principal de identificación.
  *
@@ -153,10 +158,13 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   protected readonly doctorIdLoading = signal(false);
   protected readonly doctorIdError = signal<string | null>(null);
 
+  /** DoctorID para CGCOM, EmployeeID para el resto de tenants. */
+  protected readonly credentialLabel = resolveCredentialLabel();
+
   // ── Auth method catalogue ─────────────────────────────────────────────────
   /**
-   * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID están
-   * comentados — sólo Certificado Digital está habilitado.
+   * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID/EmployeeID
+   * están comentados — sólo Certificado Digital está habilitado.
    */
   protected readonly authMethods: Array<{
     id: AuthMethod;
@@ -176,10 +184,10 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     { id: 'claveMobile', title: 'Cl@ve Móvil',
       description: 'Autentícate usando la aplicación Cl@ve en tu smartphone',
       recommended: false },
-    { id: 'doctorId', title: 'DoctorID',
-      description: 'Accede con tu credencial verificable DoctorID desde tu cartera digital',
+    { id: 'doctorId', title: this.credentialLabel,
+      description: `Accede con tu credencial verificable ${this.credentialLabel} desde tu cartera digital`,
       recommended: false },
-    { id: 'video', title: 'VideoIdentificación',
+    { id: 'video', title: 'Video Identificación',
       description: 'Identifícate en tiempo real con un agente verificador mediante videollamada',
       recommended: false },
   ];
@@ -382,7 +390,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     }).catch((err: unknown) => {
       this.doctorIdLoading.set(false);
       this.doctorIdError.set(
-        err instanceof Error ? err.message : 'Error al completar la autenticación con DoctorID.'
+        err instanceof Error ? err.message : `Error al completar la autenticación con ${this.credentialLabel}.`
       );
     });
   }
