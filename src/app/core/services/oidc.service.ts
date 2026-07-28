@@ -142,11 +142,11 @@ export class OidcService {
       id: `${this.tenant === 'cgcom' ? 'DOCTORID' : 'EMPLOYEEID'}-${String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? claims['sub'] ?? Date.now())}`,
       name,
       collegiateNumber: String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? ''),
-      dni:              String(claims['nationalId'] ?? ''),
+      dni:              String(claims['nationalId'] ?? mandatee['nationalId'] ?? ''),
       email:            String(claims['email'] ?? mandatee['email'] ?? ''),
       phone:            String(claims['phone_number'] ?? ''),
       college:          String(claims['provincialBoard'] ?? mandator['organization'] ?? defaultCollege),
-      specialty:        String(claims['specialty'] ?? ''),
+      specialty:        String(claims['specialty'] ?? mandatee['jobTitle'] ?? ''),
       authMethod: 'doctorId',
     };
   }
