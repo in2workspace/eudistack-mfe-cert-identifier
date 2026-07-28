@@ -138,6 +138,17 @@ export class OidcService {
 
     const defaultCollege = this.tenant === 'cgcom' ? 'Colegio Oficial de Médicos' : 'Empresa';
 
+    // Puesto/"Especialidad" is demo data, not part of any real HR system — a
+    // per-tenant hardcoded display value instead of a credential claim
+    // (LEARCredentialEmployee has no job-title-equivalent field; matches the
+    // same values already shown pre-issuance in clave-auth's DemoProfile).
+    const specialtyByTenant: Record<string, string> = {
+      calidalia: 'Responsable de Calidad',
+    };
+    const specialty = this.tenant === 'cgcom'
+      ? String(claims['specialty'] ?? '')
+      : (specialtyByTenant[this.tenant] ?? 'Consultor de Tecnología');
+
     return {
       id: `${this.tenant === 'cgcom' ? 'DOCTORID' : 'EMPLOYEEID'}-${String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? claims['sub'] ?? Date.now())}`,
       name,
@@ -146,7 +157,7 @@ export class OidcService {
       email:            String(claims['email'] ?? mandatee['email'] ?? ''),
       phone:            String(claims['phone_number'] ?? ''),
       college:          String(claims['provincialBoard'] ?? mandator['organization'] ?? defaultCollege),
-      specialty:        String(claims['specialty'] ?? mandatee['jobTitle'] ?? ''),
+      specialty,
       authMethod: 'doctorId',
     };
   }
