@@ -120,11 +120,13 @@ export class OidcService {
       // Fallback to empty claims — defaults below will apply
     }
 
-    // learcredential (resto de tenants) trae los datos anidados bajo
-    // mandate.mandatee/mandator en vez de los claims planos de doctorid.
-    const mandate = claims['mandate'] as Record<string, unknown> | undefined;
-    const mandatee = (mandate?.['mandatee'] as Record<string, unknown>) ?? {};
-    const mandator = (mandate?.['mandator'] as Record<string, unknown>) ?? {};
+    // learcredential (resto de tenants) trae los datos en los claims de nivel
+    // superior `mandatee`/`mandator` (id_token_embed del schema profile
+    // learcredential.employee.sd.1 en el Verifier: "mandatee": "mandate.mandatee",
+    // "mandator": "mandate.mandator" — la clave del claim es el nombre corto,
+    // no "mandate.mandatee"/"mandate.mandator" anidados bajo un wrapper "mandate").
+    const mandatee = (claims['mandatee'] as Record<string, unknown>) ?? {};
+    const mandator = (claims['mandator'] as Record<string, unknown>) ?? {};
 
     const givenName = String(
       claims['given_name'] ?? claims['givenName'] ?? claims['firstName'] ?? mandatee['firstName'] ?? '');
@@ -136,15 +138,26 @@ export class OidcService {
 
     const defaultCollege = this.tenant === 'cgcom' ? 'Colegio Oficial de Médicos' : 'Empresa';
 
+    // Puesto/"Especialidad" is demo data, not part of any real HR system — a
+    // per-tenant hardcoded display value instead of a credential claim
+    // (LEARCredentialEmployee has no job-title-equivalent field; matches the
+    // same values already shown pre-issuance in clave-auth's DemoProfile).
+    const specialtyByTenant: Record<string, string> = {
+      calidalia: 'Responsable de Calidad',
+    };
+    const specialty = this.tenant === 'cgcom'
+      ? String(claims['specialty'] ?? '')
+      : (specialtyByTenant[this.tenant] ?? 'Consultor de Tecnología');
+
     return {
       id: `${this.tenant === 'cgcom' ? 'DOCTORID' : 'EMPLOYEEID'}-${String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? claims['sub'] ?? Date.now())}`,
       name,
       collegiateNumber: String(claims['registrationNumber'] ?? mandatee['employeeId'] ?? ''),
-      dni:              String(claims['nationalId'] ?? ''),
+      dni:              String(claims['nationalId'] ?? mandatee['nationalId'] ?? ''),
       email:            String(claims['email'] ?? mandatee['email'] ?? ''),
       phone:            String(claims['phone_number'] ?? ''),
       college:          String(claims['provincialBoard'] ?? mandator['organization'] ?? defaultCollege),
-      specialty:        String(claims['specialty'] ?? ''),
+      specialty,
       authMethod: 'doctorId',
     };
   }
