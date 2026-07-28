@@ -200,12 +200,20 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
+  /**
+   * Origen del popup de cert-auth. En STG es environment.certServerUrl, un
+   * host ALB-bypass dedicado (puerto mTLS aparte) para que el navegador
+   * llegue realmente al listener mTLS del ALB. En local no hay tal bypass
+   * (mismo nginx sirve /identify/ para cualquier subdominio de tenant), así
+   * que certServerUrl viene vacío y se cae al origin actual (AD-2).
+   */
+  private certServerOrigin(): string {
+    return environment.certServerUrl || window.location.origin;
+  }
+
   /** Listener de postMessage — equivalente al useCallback+useEffect del original React. */
   private readonly certMessageListener = (event: MessageEvent): void => {
-    // El popup de cert-auth carga en environment.certServerUrl, NO en el origin
-    // de esta app: en STG es un host ALB-bypass dedicado (puerto mTLS aparte)
-    // para que el navegador llegue realmente al listener mTLS del ALB.
-    if (event.origin !== environment.certServerUrl) return;
+    if (event.origin !== this.certServerOrigin()) return;
 
     if (event.data?.type === 'CERT_AUTH_SUCCESS') {
       this.certData.set(event.data.data as CertificateData);
@@ -285,7 +293,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
 
     const popup = window.open(
-      `${environment.certServerUrl}/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
+      `${this.certServerOrigin()}/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
       'cert-auth',
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
