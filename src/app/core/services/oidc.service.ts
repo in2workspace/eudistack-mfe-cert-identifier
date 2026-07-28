@@ -120,11 +120,13 @@ export class OidcService {
       // Fallback to empty claims — defaults below will apply
     }
 
-    // learcredential (resto de tenants) trae los datos anidados bajo
-    // mandate.mandatee/mandator en vez de los claims planos de doctorid.
-    const mandate = claims['mandate'] as Record<string, unknown> | undefined;
-    const mandatee = (mandate?.['mandatee'] as Record<string, unknown>) ?? {};
-    const mandator = (mandate?.['mandator'] as Record<string, unknown>) ?? {};
+    // learcredential (resto de tenants) trae los datos en los claims de nivel
+    // superior `mandatee`/`mandator` (id_token_embed del schema profile
+    // learcredential.employee.sd.1 en el Verifier: "mandatee": "mandate.mandatee",
+    // "mandator": "mandate.mandator" — la clave del claim es el nombre corto,
+    // no "mandate.mandatee"/"mandate.mandator" anidados bajo un wrapper "mandate").
+    const mandatee = (claims['mandatee'] as Record<string, unknown>) ?? {};
+    const mandator = (claims['mandator'] as Record<string, unknown>) ?? {};
 
     const givenName = String(
       claims['given_name'] ?? claims['givenName'] ?? claims['firstName'] ?? mandatee['firstName'] ?? '');
