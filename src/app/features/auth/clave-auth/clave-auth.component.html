@@ -19,74 +19,16 @@
 
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-    <!-- ── Step: select ───────────────────────────────────────────────── -->
-    @if (step() === 'select') {
-      <div>
-        <div class="text-center mb-12">
-          <div class="w-20 h-20 bg-brand-secondary rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
-          </div>
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">
-            Autenticación Segura
-          </h2>
-          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-            Selecciona tu método preferido de autenticación. Todos los métodos son igualmente seguros.
-          </p>
-        </div>
-
-        <div class="grid gap-6 mb-8">
-          @for (method of authMethods; track method.id) {
-            <app-card
-              extraClass="p-6 cursor-pointer hover:shadow-lg transition-all hover:border-brand-accent relative"
-              (click)="handleSelectMethod(method.id)"
-            >
-              @if (method.recommended) {
-                <div class="absolute top-4 right-4">
-                  <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
-                    Recomendado
-                  </span>
-                </div>
-              }
-              <div class="flex items-start gap-4">
-                <div class="w-14 h-14 bg-brand-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-                  @if (method.id === 'certificate') {
-                    <svg lucideShield class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'eDNI') {
-                    <svg lucideCreditCard class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'claveMobile') {
-                    <svg lucideSmartphone class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'doctorId') {
-                    <svg lucideShield class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'video') {
-                    <svg lucideVideo class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                </div>
-                <div class="flex-1">
-                  <h3 class="font-bold text-gray-900 mb-2">{{ method.title }}</h3>
-                  <p class="text-gray-600 mb-4">{{ method.description }}</p>
-                  <div class="flex items-center gap-2 text-brand-accent">
-                    <span class="font-semibold">Seleccionar este método</span>
-                    <svg lucideChevronRight class="w-5 h-5"></svg>
-                  </div>
-                </div>
-              </div>
-            </app-card>
-          }
-        </div>
-      </div>
-    }
-
     <!-- ── Step: authenticate ─────────────────────────────────────────── -->
-    @if (step() === 'authenticate' && selectedMethod()) {
+    <!-- La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
+         ('portal/identify'); se llega aquí siempre con un método ya elegido
+         (?method=<id>) — ver ngOnInit(). -->
+    @if (selectedMethod()) {
       <div>
         <app-button
           variant="ghost"
           extraClass="mb-6 text-gray-600"
-          (clicked)="handleGoBackToSelect()"
+          (clicked)="goToMethodSelection()"
         >
           <svg lucideArrowLeft class="w-5 h-5 mr-2"></svg>
           Cambiar método
@@ -414,7 +356,7 @@
                 <div class="text-center">
                   <app-button
                     extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
-                    (clicked)="handleGoBackToSelect()"
+                    (clicked)="goToMethodSelection()"
                   >
                     Volver a intentarlo
                   </app-button>
@@ -486,7 +428,7 @@
                   type="button"
                   class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors"
                   title="Colgar"
-                  (click)="handleGoBackToSelect()"
+                  (click)="goToMethodSelection()"
                 >
                   <svg lucidePhoneOff class="w-6 h-6 text-white"></svg>
                 </button>
@@ -508,7 +450,7 @@
               variant="outline"
               extraClass="flex-1"
               [disabled]="isAuthenticating()"
-              (clicked)="handleGoBackToSelect()"
+              (clicked)="goToMethodSelection()"
             >
               Cancelar
             </app-button>

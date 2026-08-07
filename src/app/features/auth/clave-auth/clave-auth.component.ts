@@ -143,7 +143,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   // ── State (signals) ───────────────────────────────────────────────────────
   protected readonly selectedMethod = signal<AuthMethod | null>(null);
   protected readonly isAuthenticating = signal(false);
-  protected readonly step = signal<'select' | 'authenticate'>('select');
 
   /** Mock fields — eDNI flow (deshabilitado, preservado para futura activación). */
   protected readonly dni = signal('12345678A');
@@ -235,6 +234,16 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
+    // ('portal/identify'); se llega aquí siempre con ?method=<id> ya elegido.
+    // Sin método válido no hay nada que mostrar — se redirige de vuelta.
+    const method = params.get('method') as AuthMethod | null;
+    if (!method || !this.authMethods.some((m) => m.id === method)) {
+      window.location.href = '/identify/portal/identify';
+      return;
+    }
+    this.handleSelectMethod(method);
+
     window.addEventListener('message', this.certMessageListener);
 
     this.destroyRef.onDestroy(() => {
@@ -242,14 +251,13 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     });
 
     /**
-     * RF-001: abrir el popup de certificado automáticamente al entrar en
-     * el paso 'authenticate' con método 'certificate' y sin datos previos.
+     * RF-001: abrir el popup de certificado automáticamente al entrar con
+     * método 'certificate' y sin datos previos.
      *
      * effect() requiere injection context — se pasa { injector } para llamarlo desde ngOnInit.
      */
     effect(() => {
-      const s = this.step();
-      const method = this.selectedMethod();
+      const selected = this.selectedMethod();
       const data = this.certData();
       const loading = this.certLoading();
       const error = this.certError();
@@ -257,7 +265,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       // Only auto-open the popup on first entry (no prior error).
       // Without the error guard the effect re-fires after every failure,
       // creating a silent tight loop in Edge (popup blocker returns null → !loading → effect → ...).
-      if (s === 'authenticate' && method === 'certificate' && data === null && !loading && error === null) {
+      if (selected === 'certificate' && data === null && !loading && error === null) {
         this.handleCertificateSelect();
       }
     }, { injector: this.injector });
@@ -275,7 +283,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       return;
     }
     this.selectedMethod.set(method);
-    this.step.set('authenticate');
     this.certData.set(null);
     this.certError.set(null);
     this.certLoading.set(false);
@@ -382,7 +389,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     if (state !== savedState) {
       this.doctorIdError.set('Error de seguridad: state no coincide. Por favor, inicia el proceso de nuevo.');
       this.selectedMethod.set('doctorId');
-      this.step.set('authenticate');
       return;
     }
 
@@ -390,7 +396,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     history.replaceState({}, '', window.location.pathname);
 
     this.selectedMethod.set('doctorId');
-    this.step.set('authenticate');
     this.doctorIdLoading.set(true);
     this.doctorIdError.set(null);
 
@@ -411,11 +416,13 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       : (window.location.href = '/');
   }
 
-  protected handleGoBackToSelect(): void {
-    this.step.set('select');
-    this.certData.set(null);
-    this.certError.set(null);
-    this.certLoading.set(false);
+  /**
+   * La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
+   * ('portal/identify') — "cambiar método"/"cancelar" ya no es un estado
+   * local, es volver a esa pantalla (same-origin, cross-app).
+   */
+  protected goToMethodSelection(): void {
+    window.location.href = '/identify/portal/identify';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
