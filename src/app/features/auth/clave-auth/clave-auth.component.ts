@@ -11,11 +11,6 @@ import {
 } from '@angular/core';
 import {
   LucideShield,
-  LucideCreditCard,
-  LucideSmartphone,
-  LucideVideo,
-  LucideMic,
-  LucidePhoneOff,
   LucideArrowLeft,
   LucideChevronRight,
   LucideCheckCircle,
@@ -29,14 +24,11 @@ import {
 } from '@lucide/angular';
 
 import { AuthMethod, AuthenticatedUser, CertificateData } from '../../../core/models/auth.model';
-import { OidcService } from '../../../core/services/oidc.service';
 import { BrandingService } from '../../../core/branding/branding.service';
 import { resolveTenantIdentity } from '../../../core/branding/resolve-tenant-identity';
 import { environment } from '../../../../environments/environment';
 import { ButtonComponent } from '../../../shared/components/button/button.component';
 import { CardComponent } from '../../../shared/components/card/card.component';
-import { InputComponent } from '../../../shared/components/input/input.component';
-import { LabelComponent } from '../../../shared/components/label/label.component';
 
 /** Perfil demo por tenant (nombre/departamento/puesto): CGCOM emite para médicos colegiados; el resto, para empleados del grupo. */
 interface DemoProfile {
@@ -80,27 +72,16 @@ function resolveDemoProfile(): DemoProfile {
   return (tenant && DEMO_PROFILES_BY_TENANT[tenant]) || EMPLOYEE_DEMO_PROFILE;
 }
 
-/** Único tenant con emisión DoctorID hoy; el resto ve la credencial genérica de empleado (mismo criterio que el Portal de Emisión). */
-function resolveCredentialLabel(): string {
-  return resolveTenantIdentity(window.location, environment) === 'cgcom' ? 'DoctorID' : 'EmployeeID';
-}
-
 /**
- * ClaveAuthComponent — componente principal de identificación.
+ * ClaveAuthComponent — autenticación con Certificado Digital (popup mTLS).
+ *
+ * eDNI, Cl@ve Móvil, DoctorID y Video se movieron a
+ * eudistack-cgcom-mfe-issuance-portal ('portal/identify') — solo
+ * 'certificate' se queda aquí: depende del popup mTLS + cert-server.mjs,
+ * imposible de mover sin tocar ese backend.
  *
  * Migración de src/components/portal/ClaveAuthPage.tsx (React 18 + hooks)
  * a Angular 19 standalone components + signals.
- *
- * Mapa de conversión React → Angular:
- *   useState<T>              → signal<T>()
- *   useEffect([deps])        → effect() — re-ejecuta con signals leídas en su cuerpo
- *   useCallback              → método de clase (Angular no necesita memoización)
- *   onAuthenticate (prop)    → @Output() authenticated
- *   onBack (prop)            → @Output() back  +  window.history.back() interno
- *
- * El componente también hace el redirect a /identify/portal (same-origin)
- * directamente (equivalente al handleAuthenticated de App.tsx) para que
- * funcione tanto embebido como cargado por router.
  *
  * Iconos: @lucide/angular — directivas standalone svg[lucide*].
  */
@@ -111,15 +92,8 @@ function resolveCredentialLabel(): string {
     // UI primitives
     ButtonComponent,
     CardComponent,
-    InputComponent,
-    LabelComponent,
     // Lucide icons (standalone directives svg[lucide*])
     LucideShield,
-    LucideCreditCard,
-    LucideSmartphone,
-    LucideVideo,
-    LucideMic,
-    LucidePhoneOff,
     LucideArrowLeft,
     LucideChevronRight,
     LucideCheckCircle,
@@ -144,55 +118,12 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   protected readonly selectedMethod = signal<AuthMethod | null>(null);
   protected readonly isAuthenticating = signal(false);
 
-  /** Mock fields — eDNI flow (deshabilitado, preservado para futura activación). */
-  protected readonly dni = signal('12345678A');
-  protected readonly pin = signal('1234');
-
   /** Certificate authentication state. */
   protected readonly certData = signal<CertificateData | null>(null);
   protected readonly certError = signal<string | null>(null);
   protected readonly certLoading = signal(false);
 
-  /** DoctorID OIDC callback state. */
-  protected readonly doctorIdLoading = signal(false);
-  protected readonly doctorIdError = signal<string | null>(null);
-
-  /** DoctorID para CGCOM, EmployeeID para el resto de tenants. */
-  protected readonly credentialLabel = resolveCredentialLabel();
-
-  // ── Auth method catalogue ─────────────────────────────────────────────────
-  /**
-   * Métodos activos en el entorno de demo. eDNI, Cl@ve Móvil y DoctorID/EmployeeID
-   * están comentados — sólo Certificado Digital está habilitado.
-   */
-  protected readonly authMethods: Array<{
-    id: AuthMethod;
-    title: string;
-    description: string;
-    recommended: boolean;
-  }> = [
-    { id: 'eDNI', title: 'DNI Electrónico',
-      description: 'Autentícate usando tu DNI electrónico y un lector de tarjetas',
-      recommended: false },
-    {
-      id: 'certificate',
-      title: 'Certificado Digital',
-      description: 'Usa tu certificado digital instalado en este dispositivo (ej: FNMT)',
-      recommended: true,
-    },
-    { id: 'claveMobile', title: 'Cl@ve Móvil',
-      description: 'Autentícate usando la aplicación Cl@ve en tu smartphone',
-      recommended: false },
-    { id: 'doctorId', title: this.credentialLabel,
-      description: `Accede con tu credencial verificable ${this.credentialLabel} desde tu cartera digital`,
-      recommended: false },
-    { id: 'video', title: 'Video Identificación',
-      description: 'Identifícate en tiempo real con un agente verificador mediante videollamada',
-      recommended: false },
-  ];
-
   // ── Services ──────────────────────────────────────────────────────────────
-  private readonly oidcService = inject(OidcService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
   protected readonly branding = inject(BrandingService);
@@ -225,24 +156,16 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   };
 
   ngOnInit(): void {
-    // Detect OIDC callback from DoctorID verifier flow
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
-    if (code && state) {
-      this.handleOidcCallback(code, state);
-      return;
-    }
-
     // La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
-    // ('portal/identify'); se llega aquí siempre con ?method=<id> ya elegido.
-    // Sin método válido no hay nada que mostrar — se redirige de vuelta.
-    const method = params.get('method') as AuthMethod | null;
-    if (!method || !this.authMethods.some((m) => m.id === method)) {
+    // ('portal/identify'); se llega aquí siempre con ?method=certificate ya
+    // elegido — es el único método que queda en este repo.
+    const params = new URLSearchParams(window.location.search);
+    const method = params.get('method');
+    if (method !== 'certificate') {
       window.location.href = '/identify/portal/identify';
       return;
     }
-    this.handleSelectMethod(method);
+    this.selectedMethod.set('certificate');
 
     window.addEventListener('message', this.certMessageListener);
 
@@ -251,13 +174,12 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     });
 
     /**
-     * RF-001: abrir el popup de certificado automáticamente al entrar con
-     * método 'certificate' y sin datos previos.
+     * RF-001: abrir el popup de certificado automáticamente al entrar sin
+     * datos previos.
      *
      * effect() requiere injection context — se pasa { injector } para llamarlo desde ngOnInit.
      */
     effect(() => {
-      const selected = this.selectedMethod();
       const data = this.certData();
       const loading = this.certLoading();
       const error = this.certError();
@@ -265,7 +187,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       // Only auto-open the popup on first entry (no prior error).
       // Without the error guard the effect re-fires after every failure,
       // creating a silent tight loop in Edge (popup blocker returns null → !loading → effect → ...).
-      if (selected === 'certificate' && data === null && !loading && error === null) {
+      if (data === null && !loading && error === null) {
         this.handleCertificateSelect();
       }
     }, { injector: this.injector });
@@ -276,17 +198,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   }
 
   // ── Handlers ──────────────────────────────────────────────────────────────
-
-  protected handleSelectMethod(method: AuthMethod): void {
-    if (method === 'doctorId') {
-      this.oidcService.iniciarFlujoOIDCPortal();
-      return;
-    }
-    this.selectedMethod.set(method);
-    this.certData.set(null);
-    this.certError.set(null);
-    this.certLoading.set(false);
-  }
 
   /** Abre el popup mTLS hacia el cert-server para lectura del certificado. */
   protected handleCertificateSelect(): void {
@@ -328,7 +239,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   }
 
   /** Autentica con los datos del certificado leído. */
-  protected handleCertificateAuthenticate(): void {
+  protected handleAuthenticate(): void {
     const cert = this.certData();
     if (!cert) return;
 
@@ -354,59 +265,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     };
 
     this.emitAuthenticated(user);
-  }
-
-  /** Autentica con datos mock — eDNI y Cl@ve Móvil (entorno demo). */
-  protected handleMockAuthenticate(): void {
-    this.isAuthenticating.set(true);
-    const profile = resolveDemoProfile();
-    setTimeout(() => {
-      const mockUser: AuthenticatedUser = {
-        id: profile.mockId,
-        name: profile.mockName,
-        collegiateNumber: '282912345',
-        dni: this.dni(),
-        email: profile.mockEmail,
-        phone: '+34 600 123 456',
-        college: profile.college,
-        specialty: profile.specialty,
-        authMethod: this.selectedMethod() as 'eDNI' | 'claveMobile' | 'video',
-      };
-      this.emitAuthenticated(mockUser);
-    }, 2000);
-  }
-
-  protected handleAuthenticate(): void {
-    if (this.selectedMethod() === 'certificate') {
-      this.handleCertificateAuthenticate();
-    } else {
-      this.handleMockAuthenticate();
-    }
-  }
-
-  private handleOidcCallback(code: string, state: string): void {
-    const savedState = sessionStorage.getItem('oidc_state');
-    if (state !== savedState) {
-      this.doctorIdError.set('Error de seguridad: state no coincide. Por favor, inicia el proceso de nuevo.');
-      this.selectedMethod.set('doctorId');
-      return;
-    }
-
-    // Clean URL without triggering navigation
-    history.replaceState({}, '', window.location.pathname);
-
-    this.selectedMethod.set('doctorId');
-    this.doctorIdLoading.set(true);
-    this.doctorIdError.set(null);
-
-    this.oidcService.completarFlujoOIDCPortal(code).then(user => {
-      this.emitAuthenticated(user);
-    }).catch((err: unknown) => {
-      this.doctorIdLoading.set(false);
-      this.doctorIdError.set(
-        err instanceof Error ? err.message : `Error al completar la autenticación con ${this.credentialLabel}.`
-      );
-    });
   }
 
   protected handleBack(): void {
