@@ -76,7 +76,7 @@ function resolveDemoProfile(): DemoProfile {
  * ClaveAuthComponent — autenticación con Certificado Digital (popup mTLS).
  *
  * eDNI, Cl@ve Móvil, DoctorID y Video se movieron a
- * eudistack-cgcom-mfe-issuance-portal ('portal/identify') — solo
+ * eudistack-cgcom-mfe-issuance-portal ('identify') — solo
  * 'certificate' se queda aquí: depende del popup mTLS + cert-server.mjs,
  * imposible de mover sin tocar ese backend.
  *
@@ -134,7 +134,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
    * Origen del popup de cert-auth. En STG es environment.certServerUrl, un
    * host ALB-bypass dedicado (puerto mTLS aparte) para que el navegador
    * llegue realmente al listener mTLS del ALB. En local no hay tal bypass
-   * (mismo nginx sirve /identify/ para cualquier subdominio de tenant), así
+   * (mismo nginx sirve /issuance-portal/ para cualquier subdominio de tenant), así
    * que certServerUrl viene vacío y se cae al origin actual (AD-2).
    */
   private certServerOrigin(): string {
@@ -157,12 +157,12 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     // La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
-    // ('portal/identify'); se llega aquí siempre con ?method=certificate ya
+    // ('identify'); se llega aquí siempre con ?method=certificate ya
     // elegido — es el único método que queda en este repo.
     const params = new URLSearchParams(window.location.search);
     const method = params.get('method');
     if (method !== 'certificate') {
-      window.location.href = '/identify/portal/identify';
+      window.location.href = '/issuance-portal/identify';
       return;
     }
     this.selectedMethod.set('certificate');
@@ -211,7 +211,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
 
     const popup = window.open(
-      `${this.certServerOrigin()}/identify/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
+      `${this.certServerOrigin()}/issuance-portal/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
       'cert-auth',
       `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
     );
@@ -276,11 +276,11 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
   /**
    * La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
-   * ('portal/identify') — "cambiar método"/"cancelar" ya no es un estado
+   * ('identify') — "cambiar método"/"cancelar" ya no es un estado
    * local, es volver a esa pantalla (same-origin, cross-app).
    */
   protected goToMethodSelection(): void {
-    window.location.href = '/identify/portal/identify';
+    window.location.href = '/issuance-portal/identify';
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -306,6 +306,6 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   private emitAuthenticated(user: AuthenticatedUser): void {
     this.authenticated.emit(user);
     const encoded = btoa(encodeURIComponent(JSON.stringify(user)));
-    window.location.href = `/identify/portal?identified=1&u=${encoded}`;
+    window.location.href = `/issuance-portal/?identified=1&u=${encoded}`;
   }
 }
