@@ -19,74 +19,16 @@
 
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
-    <!-- ── Step: select ───────────────────────────────────────────────── -->
-    @if (step() === 'select') {
-      <div>
-        <div class="text-center mb-12">
-          <div class="w-20 h-20 bg-brand-secondary rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
-          </div>
-          <h2 class="text-3xl font-bold text-gray-900 mb-4">
-            Autenticación Segura
-          </h2>
-          <p class="text-xl text-gray-600 max-w-2xl mx-auto">
-            Selecciona tu método preferido de autenticación. Todos los métodos son igualmente seguros.
-          </p>
-        </div>
-
-        <div class="grid gap-6 mb-8">
-          @for (method of authMethods; track method.id) {
-            <app-card
-              extraClass="p-6 cursor-pointer hover:shadow-lg transition-all hover:border-brand-accent relative"
-              (click)="handleSelectMethod(method.id)"
-            >
-              @if (method.recommended) {
-                <div class="absolute top-4 right-4">
-                  <span class="bg-green-100 text-green-800 text-xs font-semibold px-3 py-1 rounded-full">
-                    Recomendado
-                  </span>
-                </div>
-              }
-              <div class="flex items-start gap-4">
-                <div class="w-14 h-14 bg-brand-secondary rounded-lg flex items-center justify-center flex-shrink-0">
-                  @if (method.id === 'certificate') {
-                    <svg lucideShield class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'eDNI') {
-                    <svg lucideCreditCard class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'claveMobile') {
-                    <svg lucideSmartphone class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'doctorId') {
-                    <svg lucideShield class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                  @if (method.id === 'video') {
-                    <svg lucideVideo class="w-7 h-7 text-brand-secondary-contrast"></svg>
-                  }
-                </div>
-                <div class="flex-1">
-                  <h3 class="font-bold text-gray-900 mb-2">{{ method.title }}</h3>
-                  <p class="text-gray-600 mb-4">{{ method.description }}</p>
-                  <div class="flex items-center gap-2 text-brand-accent">
-                    <span class="font-semibold">Seleccionar este método</span>
-                    <svg lucideChevronRight class="w-5 h-5"></svg>
-                  </div>
-                </div>
-              </div>
-            </app-card>
-          }
-        </div>
-      </div>
-    }
-
-    <!-- ── Step: authenticate ─────────────────────────────────────────── -->
-    @if (step() === 'authenticate' && selectedMethod()) {
+    <!-- ── Autenticación con Certificado Digital ────────────────────────── -->
+    <!-- La selección de método vive ahora en eudistack-cgcom-mfe-issuance-portal
+         ('identify'); se llega aquí siempre con ?method=certificate
+         ya elegido — ver ngOnInit(). -->
+    @if (selectedMethod()) {
       <div>
         <app-button
           variant="ghost"
           extraClass="mb-6 text-gray-600"
-          (clicked)="handleGoBackToSelect()"
+          (clicked)="goToMethodSelection()"
         >
           <svg lucideArrowLeft class="w-5 h-5 mr-2"></svg>
           Cambiar método
@@ -97,410 +39,207 @@
           <!-- Method icon + title -->
           <div class="text-center mb-8">
             <div class="w-20 h-20 bg-brand-secondary rounded-full flex items-center justify-center mx-auto mb-6">
-              @if (selectedMethod() === 'eDNI') {
-                <svg lucideCreditCard class="w-10 h-10 text-brand-secondary-contrast"></svg>
-              }
-              @if (selectedMethod() === 'certificate') {
-                <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
-              }
-              @if (selectedMethod() === 'claveMobile') {
-                <svg lucideSmartphone class="w-10 h-10 text-brand-secondary-contrast"></svg>
-              }
-              @if (selectedMethod() === 'doctorId') {
-                <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
-              }
-              @if (selectedMethod() === 'video') {
-                <svg lucideVideo class="w-10 h-10 text-brand-secondary-contrast"></svg>
-              }
+              <svg lucideShield class="w-10 h-10 text-brand-secondary-contrast"></svg>
             </div>
-            <h3 class="text-2xl font-bold text-gray-900 mb-2">
-              @if (selectedMethod() === 'eDNI') { Autenticación con DNI Electrónico }
-              @if (selectedMethod() === 'certificate') { Autenticación con Certificado Digital }
-              @if (selectedMethod() === 'claveMobile') { Autenticación con Cl&#64;ve Móvil }
-              @if (selectedMethod() === 'doctorId') { Autenticación con {{ credentialLabel }} }
-              @if (selectedMethod() === 'video') { Video Identificación }
-            </h3>
-            <p class="text-gray-600">
-              @if (selectedMethod() === 'eDNI') { Introduce tu DNI y conecta tu lector de tarjetas }
-              @if (selectedMethod() === 'certificate') { Selecciona tu certificado digital (ej: FNMT) instalado en este dispositivo }
-              @if (selectedMethod() === 'claveMobile') { Escanea el código QR con la app Cl&#64;ve }
-              @if (selectedMethod() === 'doctorId') { Procesando tu credencial {{ credentialLabel }} desde la cartera digital }
-              @if (selectedMethod() === 'video') { Conecta con un agente verificador en tiempo real }
-            </p>
+            <h3 class="text-2xl font-bold text-gray-900 mb-2">Autenticación con Certificado Digital</h3>
+            <p class="text-gray-600">Selecciona tu certificado digital (ej: FNMT) instalado en este dispositivo</p>
           </div>
 
-          <!-- ─── eDNI Method ─── -->
-          @if (selectedMethod() === 'eDNI') {
-            <div class="space-y-6">
-              <div>
-                <app-label [for]="'dni'">Número de DNI</app-label>
-                <app-input
-                  id="dni"
-                  placeholder="12345678A"
-                  [value]="dni()"
-                  (valueChange)="dni.set($event)"
-                  extraClass="mt-2"
-                ></app-input>
-              </div>
-              <div>
-                <app-label [for]="'pin'">PIN del DNI electrónico</app-label>
-                <app-input
-                  id="pin"
-                  type="password"
-                  placeholder="****"
-                  [value]="pin()"
-                  (valueChange)="pin.set($event)"
-                  extraClass="mt-2"
-                ></app-input>
-                <p class="text-sm text-gray-500 mt-2">
-                  Es el PIN de 4 dígitos que estableciste al obtener tu DNI electrónico
-                </p>
-              </div>
-              <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p class="text-sm text-gray-700">
-                  <strong>Nota de demostración:</strong> Este es un entorno de prueba.
-                  En producción, la autenticación se realizará mediante el sistema oficial Cl&#64;ve.
-                </p>
-              </div>
-            </div>
-          }
+          <div class="space-y-6">
 
-          <!-- ─── Certificate Method ─── -->
-          @if (selectedMethod() === 'certificate') {
-            <div class="space-y-6">
+            @if (!certData()) {
 
-              @if (!certData()) {
-
-                <!-- Loading: popup abierto, esperando selección -->
-                @if (certLoading()) {
-                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideLoader2 class="w-12 h-12 text-brand-accent mx-auto mb-4 animate-spin"></svg>
-                    <p class="text-gray-700 font-semibold mb-2">
-                      Esperando selección de certificado...
-                    </p>
-                    <p class="text-gray-600 text-sm">
-                      Selecciona tu certificado en la ventana que se ha abierto en tu navegador.
-                    </p>
-                  </div>
-                }
-
-                <!-- Error + botón de reintento (RF-002) -->
-                @if (certError() && !certLoading()) {
-                  <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                    <svg lucideAlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></svg>
-                    <div>
-                      <p class="text-sm font-semibold text-red-800">Error</p>
-                      <p class="text-sm text-red-700">{{ certError() }}</p>
-                    </div>
-                  </div>
-                  <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
-                    <svg lucideShield class="w-12 h-12 text-brand-accent mx-auto mb-4"></svg>
-                    <app-button
-                      extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
-                      [disabled]="certLoading()"
-                      (clicked)="handleCertificateSelect()"
-                    >
-                      <svg lucideExternalLink class="mr-2 w-5 h-5"></svg>
-                      Reintentar
-                    </app-button>
-                  </div>
-                }
-
-                <!-- Requisitos — siempre visible mientras !certData -->
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                  <div class="flex items-start gap-3">
-                    <svg lucideShield class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></svg>
-                    <div>
-                      <p class="text-sm font-semibold text-blue-800 mb-1">Requisitos</p>
-                      <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
-                        <li>Tener un certificado digital instalado en el navegador (ej: FNMT)</li>
-                        <li>Permitir ventanas emergentes para este sitio</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-
-              }
-
-              <!-- Certificate data received — atributos extraídos -->
-              @if (certData()) {
-                <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-                  <svg lucideCheckCircle class="w-6 h-6 text-green-600 flex-shrink-0"></svg>
-                  <div>
-                    <p class="font-semibold text-green-800">Certificado leído correctamente</p>
-                    <p class="text-sm text-green-700">
-                      Certificado {{ certData()!.certificateType === 'personal' ? 'personal' : 'de organización' }} válido
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Datos del titular -->
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideUser class="w-5 h-5 text-brand-accent"></svg>
-                    Datos del titular
-                  </h4>
-                  <div class="grid md:grid-cols-2 gap-4">
-                    @if (certData()!.subject.commonName) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre completo</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.commonName }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.givenName) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.givenName }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.surname) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Apellidos</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.surname }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.serialNumber) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                          <svg lucideFingerprint class="w-3.5 h-3.5"></svg>
-                          DNI / NIF
-                        </p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.serialNumber }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.emailAddress) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.emailAddress }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.organization) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
-                          <svg lucideBuilding class="w-3.5 h-3.5"></svg>
-                          Organización
-                        </p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organization }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.organizationalUnit) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Unidad organizativa</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organizationalUnit }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.organizationIdentifier) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">NIF Organización</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organizationIdentifier }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.country) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">País</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.country }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.locality) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Localidad</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.locality }}</p>
-                      </div>
-                    }
-                    @if (certData()!.subject.province) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Provincia</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.province }}</p>
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- Emisor del certificado -->
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
-                  <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
-                    <svg lucideShield class="w-5 h-5 text-brand-accent"></svg>
-                    Emisor del certificado
-                  </h4>
-                  <div class="grid md:grid-cols-2 gap-4">
-                    @if (certData()!.issuer.commonName) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.issuer.commonName }}</p>
-                      </div>
-                    }
-                    @if (certData()!.issuer.organization) {
-                      <div>
-                        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Organización</p>
-                        <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.issuer.organization }}</p>
-                      </div>
-                    }
-                  </div>
-                </div>
-
-                <!-- Validez -->
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
-                  <svg lucideCalendar class="w-5 h-5 text-brand-accent flex-shrink-0"></svg>
-                  <div>
-                    <p class="text-sm text-gray-700">
-                      <strong>Validez:</strong>
-                      {{ formatDate(certData()!.validFrom) }} — {{ formatDate(certData()!.validTo) }}
-                    </p>
-                  </div>
-                </div>
-
-                <!-- Seleccionar otro certificado -->
-                <div class="text-center">
-                  <app-button
-                    variant="ghost"
-                    extraClass="text-sm text-gray-500"
-                    (clicked)="certData.set(null); certError.set(null)"
-                  >
-                    Seleccionar otro certificado
-                  </app-button>
-                </div>
-              }
-
-            </div>
-          }
-
-          <!-- ─── Cl@ve Móvil Method ─── -->
-          @if (selectedMethod() === 'claveMobile') {
-            <div class="space-y-6">
-              <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
-                <div class="w-48 h-48 bg-white border-4 border-gray-900 rounded-lg mx-auto mb-4 flex items-center justify-center">
-                  <div class="grid grid-cols-3 gap-1 p-4">
-                    @for (item of [0,1,2,3,4,5,6,7,8]; track item) {
-                      <div class="w-4 h-4 bg-gray-900 rounded-sm"></div>
-                    }
-                  </div>
-                </div>
-                <p class="text-gray-600 mb-2">
-                  Escanea este código QR con tu app Cl&#64;ve Móvil
-                </p>
-                <p class="text-sm text-gray-500">
-                  Código: 4829-3847-2938-4756
-                </p>
-              </div>
-              <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p class="text-sm text-gray-700">
-                  <strong>Nota de demostración:</strong> Este es un entorno de prueba.
-                  En producción, se generará un código QR real para autenticación.
-                </p>
-              </div>
-            </div>
-          }
-
-          <!-- ─── DoctorID Method ─── -->
-          @if (selectedMethod() === 'doctorId') {
-            <div class="space-y-6">
-
-              @if (doctorIdLoading()) {
-                <div class="bg-gray-50 border border-gray-200 rounded-lg p-8 text-center">
+              <!-- Loading: popup abierto, esperando selección -->
+              @if (certLoading()) {
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
                   <svg lucideLoader2 class="w-12 h-12 text-brand-accent mx-auto mb-4 animate-spin"></svg>
-                  <p class="text-gray-700 font-semibold mb-1">Procesando credencial {{ credentialLabel }}...</p>
-                  <p class="text-gray-500 text-sm">Verificando tu identidad con el sistema {{ credentialLabel }}</p>
-                </div>
-              }
-
-              @if (doctorIdError() && !doctorIdLoading()) {
-                <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-                  <svg lucideAlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></svg>
-                  <div>
-                    <p class="text-sm font-semibold text-red-800">Error de autenticación</p>
-                    <p class="text-sm text-red-700">{{ doctorIdError() }}</p>
-                  </div>
-                </div>
-                <div class="text-center">
-                  <app-button
-                    extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
-                    (clicked)="handleGoBackToSelect()"
-                  >
-                    Volver a intentarlo
-                  </app-button>
-                </div>
-              }
-
-              @if (!doctorIdLoading() && !doctorIdError()) {
-                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-                  <svg lucideShield class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></svg>
-                  <p class="text-sm text-blue-700">
-                    Serás redirigido al verificador de {{ branding.appName() }} para presentar tu credencial {{ credentialLabel }} desde tu cartera digital.
+                  <p class="text-gray-700 font-semibold mb-2">
+                    Esperando selección de certificado...
+                  </p>
+                  <p class="text-gray-600 text-sm">
+                    Selecciona tu certificado en la ventana que se ha abierto en tu navegador.
                   </p>
                 </div>
               }
 
-            </div>
-          }
-
-          <!-- ─── Video Method ─── -->
-          @if (selectedMethod() === 'video') {
-            <div class="space-y-6">
-
-              <!-- Simulated video call area -->
-              <div class="relative bg-gray-900 rounded-xl overflow-hidden" style="aspect-ratio: 16/9;">
-
-                <!-- Agent camera placeholder -->
-                <div class="absolute inset-0 flex flex-col items-center justify-center gap-3">
-                  <div class="w-20 h-20 bg-gray-700 rounded-full flex items-center justify-center">
-                    <svg lucideUser class="w-10 h-10 text-gray-400"></svg>
+              <!-- Error + botón de reintento (RF-002) -->
+              @if (certError() && !certLoading()) {
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+                  <svg lucideAlertCircle class="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5"></svg>
+                  <div>
+                    <p class="text-sm font-semibold text-red-800">Error</p>
+                    <p class="text-sm text-red-700">{{ certError() }}</p>
                   </div>
-                  <p class="text-gray-400 text-sm font-medium">Agente Verificador</p>
                 </div>
-
-                <!-- Self-view thumbnail (bottom-right) -->
-                <div class="absolute bottom-3 right-3 w-24 h-16 bg-gray-700 rounded-lg flex items-center justify-center border-2 border-gray-600">
-                  <svg lucideUser class="w-6 h-6 text-gray-500"></svg>
+                <div class="bg-gray-50 border border-gray-200 rounded-lg p-6 text-center">
+                  <svg lucideShield class="w-12 h-12 text-brand-accent mx-auto mb-4"></svg>
+                  <app-button
+                    extraClass="bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
+                    [disabled]="certLoading()"
+                    (clicked)="handleCertificateSelect()"
+                  >
+                    <svg lucideExternalLink class="mr-2 w-5 h-5"></svg>
+                    Reintentar
+                  </app-button>
                 </div>
+              }
 
-                <!-- Status badge (top-left) -->
-                <div class="absolute top-3 left-3 flex items-center gap-2 bg-black/60 rounded-full px-3 py-1.5">
-                  <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                  <span class="text-white text-xs font-medium">Conectando con agente verificador...</span>
+              <!-- Requisitos — siempre visible mientras !certData -->
+              <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div class="flex items-start gap-3">
+                  <svg lucideShield class="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"></svg>
+                  <div>
+                    <p class="text-sm font-semibold text-blue-800 mb-1">Requisitos</p>
+                    <ul class="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                      <li>Tener un certificado digital instalado en el navegador (ej: FNMT)</li>
+                      <li>Permitir ventanas emergentes para este sitio</li>
+                    </ul>
+                  </div>
                 </div>
-
-                <!-- Duration badge (top-right) -->
-                <div class="absolute top-3 right-3 bg-black/60 rounded-full px-3 py-1.5">
-                  <span class="text-white text-xs font-mono">00:00</span>
-                </div>
-
               </div>
 
-              <!-- Call controls -->
-              <div class="flex items-center justify-center gap-4">
-                <button
-                  type="button"
-                  class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
-                  title="Silenciar micrófono"
-                >
-                  <svg lucideMic class="w-5 h-5 text-gray-700"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="w-12 h-12 rounded-full bg-gray-200 hover:bg-gray-300 flex items-center justify-center transition-colors"
-                  title="Desactivar cámara"
-                >
-                  <svg lucideVideo class="w-5 h-5 text-gray-700"></svg>
-                </button>
-                <button
-                  type="button"
-                  class="w-14 h-14 rounded-full bg-red-500 hover:bg-red-600 flex items-center justify-center transition-colors"
-                  title="Colgar"
-                  (click)="handleGoBackToSelect()"
-                >
-                  <svg lucidePhoneOff class="w-6 h-6 text-white"></svg>
-                </button>
+            }
+
+            <!-- Certificate data received — atributos extraídos -->
+            @if (certData()) {
+              <div class="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+                <svg lucideCheckCircle class="w-6 h-6 text-green-600 flex-shrink-0"></svg>
+                <div>
+                  <p class="font-semibold text-green-800">Certificado leído correctamente</p>
+                  <p class="text-sm text-green-700">
+                    Certificado {{ certData()!.certificateType === 'personal' ? 'personal' : 'de organización' }} válido
+                  </p>
+                </div>
               </div>
 
-              <div class="bg-amber-50 border border-amber-200 rounded-lg p-4">
-                <p class="text-sm text-gray-700">
-                  <strong>Nota de demostración:</strong> Esta es una simulación de la interfaz de Video Identificación.
-                  En producción, se establecerá una videollamada real con un agente verificador acreditado.
-                </p>
+              <!-- Datos del titular -->
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg lucideUser class="w-5 h-5 text-brand-accent"></svg>
+                  Datos del titular
+                </h4>
+                <div class="grid md:grid-cols-2 gap-4">
+                  @if (certData()!.subject.commonName) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre completo</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.commonName }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.givenName) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.givenName }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.surname) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Apellidos</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.surname }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.serialNumber) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                        <svg lucideFingerprint class="w-3.5 h-3.5"></svg>
+                        DNI / NIF
+                      </p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.serialNumber }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.emailAddress) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Email</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.emailAddress }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.organization) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-1">
+                        <svg lucideBuilding class="w-3.5 h-3.5"></svg>
+                        Organización
+                      </p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organization }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.organizationalUnit) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Unidad organizativa</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organizationalUnit }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.organizationIdentifier) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">NIF Organización</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.organizationIdentifier }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.country) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">País</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.country }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.locality) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Localidad</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.locality }}</p>
+                    </div>
+                  }
+                  @if (certData()!.subject.province) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Provincia</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.subject.province }}</p>
+                    </div>
+                  }
+                </div>
               </div>
 
-            </div>
-          }
+              <!-- Emisor del certificado -->
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-6">
+                <h4 class="font-bold text-gray-900 mb-4 flex items-center gap-2">
+                  <svg lucideShield class="w-5 h-5 text-brand-accent"></svg>
+                  Emisor del certificado
+                </h4>
+                <div class="grid md:grid-cols-2 gap-4">
+                  @if (certData()!.issuer.commonName) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Nombre</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.issuer.commonName }}</p>
+                    </div>
+                  }
+                  @if (certData()!.issuer.organization) {
+                    <div>
+                      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide">Organización</p>
+                      <p class="text-sm font-semibold text-gray-900 mt-1">{{ certData()!.issuer.organization }}</p>
+                    </div>
+                  }
+                </div>
+              </div>
+
+              <!-- Validez -->
+              <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-center gap-3">
+                <svg lucideCalendar class="w-5 h-5 text-brand-accent flex-shrink-0"></svg>
+                <div>
+                  <p class="text-sm text-gray-700">
+                    <strong>Validez:</strong>
+                    {{ formatDate(certData()!.validFrom) }} — {{ formatDate(certData()!.validTo) }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Seleccionar otro certificado -->
+              <div class="text-center">
+                <app-button
+                  variant="ghost"
+                  extraClass="text-sm text-gray-500"
+                  (clicked)="certData.set(null); certError.set(null)"
+                >
+                  Seleccionar otro certificado
+                </app-button>
+              </div>
+            }
+
+          </div>
 
           <!-- ─── Action buttons ─── -->
           <div class="mt-8 flex gap-4">
@@ -508,13 +247,13 @@
               variant="outline"
               extraClass="flex-1"
               [disabled]="isAuthenticating()"
-              (clicked)="handleGoBackToSelect()"
+              (clicked)="goToMethodSelection()"
             >
               Cancelar
             </app-button>
             <app-button
               extraClass="flex-1 bg-brand-secondary hover:opacity-90 text-brand-secondary-contrast"
-              [disabled]="isAuthenticating() || doctorIdLoading() || selectedMethod() === 'doctorId' || (selectedMethod() === 'certificate' && !certData())"
+              [disabled]="isAuthenticating() || !certData()"
               (clicked)="handleAuthenticate()"
             >
               @if (isAuthenticating()) {
