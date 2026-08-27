@@ -4,12 +4,6 @@ on:
   pull_request:
     branches: [main]
     types: [opened, synchronize, reopened]
-    paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'docs/**'
-      - 'LICENSE'
-      - '.gitignore'
 
 permissions:
   contents: read
@@ -21,8 +15,32 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    name: Detect code changes
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - name: Filter changed paths
+        id: filter
+        uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+        with:
+          predicate-quantifier: 'every'
+          filters: |
+            code:
+              - '!**/*.md'
+              - '!docs/**'
+              - '!.github/**'
+              - '!LICENSE'
+              - '!.gitignore'
+
   build:
     name: Build & Test
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -67,7 +85,12 @@ jobs:
 
   dast-baseline:
     name: ZAP DAST Baseline
-    needs: build
+    needs: [changes, build]
+    # Gated on `!cancelled()` and deliberately NOT on `needs.build.result`: what
+    # this job exercises (the bundle serves over HTTP) is orthogonal to the
+    # unit-test gate in `build`, so a red `build` should not suppress the DAST
+    # signal. It is skipped only when the change carries no code at all.
+    if: ${{ !cancelled() && needs.changes.outputs.code != 'false' }}
     runs-on: ubuntu-latest
     # G2 (conv-infrastructure-testing.md §6.3): passive scan with Ajax Spider
     # (Angular SPA — default spider only sees index.html), non-blocking.
