@@ -18,6 +18,7 @@ jobs:
   changes:
     name: Detect code changes
     runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
     permissions:
       contents: read
       pull-requests: read
