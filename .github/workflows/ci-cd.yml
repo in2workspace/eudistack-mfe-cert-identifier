@@ -118,9 +118,97 @@ jobs:
           path: build/sbom/sbom.json
           retention-days: 90
 
+  cd-dev:
+    name: Deploy to Development
+    needs: ci
+    runs-on: ubuntu-latest
+    environment:
+      name: dev
+    env:
+      ENVIRONMENT: dev
+    steps:
+      - name: Download build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spa-build-${{ github.sha }}
+          path: dist/out/browser/
+
+      - name: Generate env.js
+        env:
+          CERT_SERVER_URL: ${{ vars.CERT_SERVER_URL }}
+          OIDC_CLIENT_ID: ${{ vars.OIDC_CLIENT_ID }}
+          OIDC_AUTHORIZATION_ENDPOINT: ${{ vars.OIDC_AUTHORIZATION_ENDPOINT }}
+          OIDC_PORTAL_REDIRECT_URI: ${{ vars.OIDC_PORTAL_REDIRECT_URI }}
+          ISSUANCE_PORTAL_URL: ${{ vars.ISSUANCE_PORTAL_URL }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update && sudo apt-get install -y gettext-base
+
+          if [ -f dist/out/browser/assets/env.template.js ]; then
+            envsubst < dist/out/browser/assets/env.template.js > dist/out/browser/assets/env.js
+            echo "Generated env.js for ${ENVIRONMENT}"
+          else
+            echo "::error::env.template.js not found"
+            exit 1
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_DEV }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Sync build to S3
+        env:
+          S3_BUCKET: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-s3-${{ env.REGION_CODE }}-spa
+        run: |
+          set -euo pipefail
+
+          aws s3 sync dist/out/browser/ "s3://${S3_BUCKET}/${SPA_PREFIX}/" \
+            --delete \
+            --exclude "index.html" \
+            --exclude "assets/env.js" \
+            --cache-control "public, max-age=31536000, immutable"
+
+          aws s3 cp dist/out/browser/index.html "s3://${S3_BUCKET}/${SPA_PREFIX}/index.html" \
+            --cache-control "no-store" \
+            --content-type "text/html"
+
+          aws s3 cp dist/out/browser/assets/env.js "s3://${S3_BUCKET}/${SPA_PREFIX}/assets/env.js" \
+            --cache-control "no-store" \
+            --content-type "application/javascript"
+
+      - name: Invalidate CloudFront distributions
+        env:
+          CF_COMMENT_PREFIX: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-cdn-${{ env.REGION_CODE }}-
+          S3_BUCKET: ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-s3-${{ env.REGION_CODE }}-spa
+        run: |
+          set -euo pipefail
+
+          DIST_IDS=$(aws cloudfront list-distributions \
+            --query "DistributionList.Items[?starts_with(Comment, '${CF_COMMENT_PREFIX}')].Id" \
+            --output text)
+
+          if [ -z "${DIST_IDS}" ]; then
+            echo "::error::No CloudFront distributions found for prefix '${CF_COMMENT_PREFIX}'"
+            exit 1
+          fi
+
+          echo "### Deployed to Development" >> $GITHUB_STEP_SUMMARY
+          echo "- **Bucket:** s3://${S3_BUCKET}/${SPA_PREFIX}/" >> $GITHUB_STEP_SUMMARY
+          echo "- **Invalidations:**" >> $GITHUB_STEP_SUMMARY
+          for DIST_ID in ${DIST_IDS}; do
+            aws cloudfront create-invalidation \
+              --distribution-id "${DIST_ID}" \
+              --paths "/${SPA_PREFIX}/*" >/dev/null
+            echo "  - ${DIST_ID}" >> $GITHUB_STEP_SUMMARY
+          done
+          echo "### Development deployment complete" >> $GITHUB_STEP_SUMMARY
+
   cd-stg:
     name: Deploy to Staging
-    needs: ci
+    needs: [ci, cd-dev]
     runs-on: ubuntu-latest
     environment:
       name: stg
