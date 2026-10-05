@@ -73,11 +73,17 @@ function resolveDemoProfile(): DemoProfile {
 }
 
 /**
- * ClaveAuthComponent — autenticación con Certificado Digital (popup mTLS).
+ * Margen tras cargar el iframe de cert-auth para recibir CERT_AUTH_PENDING o el
+ * resultado; si no llega nada, el handshake mTLS ha fallado.
+ */
+const CERT_FRAME_LOAD_GRACE_MS = 3000;
+
+/**
+ * ClaveAuthComponent — autenticación con Certificado Digital (mTLS vía iframe oculto).
  *
  * eDNI, Cl@ve Móvil, DoctorID y Video se movieron a
  * eudistack-cgcom-mfe-issuance-portal ('identify') — solo
- * 'certificate' se queda aquí: depende del popup mTLS + cert-server.mjs,
+ * 'certificate' se queda aquí: depende del handshake mTLS + cert-server.mjs,
  * imposible de mover sin tocar ese backend.
  *
  * Migración de src/components/portal/ClaveAuthPage.tsx (React 18 + hooks)
@@ -123,6 +129,12 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   protected readonly certError = signal<string | null>(null);
   protected readonly certLoading = signal(false);
 
+  /** Iframe oculto que dispara el handshake mTLS (sustituye al popup). */
+  private certFrame: HTMLIFrameElement | null = null;
+  /** El cert-server ha confirmado que espera la selección del usuario. */
+  private certPending = false;
+  private certLoadCheck?: ReturnType<typeof setTimeout>;
+
   // ── Services ──────────────────────────────────────────────────────────────
   private readonly destroyRef = inject(DestroyRef);
   private readonly injector = inject(Injector);
@@ -131,7 +143,7 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
   /**
-   * Origen del popup de cert-auth. En STG es environment.certServerUrl, un
+   * Origen del iframe de cert-auth. En STG es environment.certServerUrl, un
    * host ALB-bypass dedicado (puerto mTLS aparte) para que el navegador
    * llegue realmente al listener mTLS del ALB. En local no hay tal bypass
    * (mismo nginx sirve /issuance-portal/ para cualquier subdominio de tenant), así
@@ -145,13 +157,15 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   private readonly certMessageListener = (event: MessageEvent): void => {
     if (event.origin !== this.certServerOrigin()) return;
 
-    if (event.data?.type === 'CERT_AUTH_SUCCESS') {
+    if (event.data?.type === 'CERT_AUTH_PENDING') {
+      this.certPending = true;
+    } else if (event.data?.type === 'CERT_AUTH_SUCCESS') {
       this.certData.set(event.data.data as CertificateData);
       this.certLoading.set(false);
       this.certError.set(null);
+      this.removeCertFrame();
     } else if (event.data?.type === 'CERT_AUTH_ERROR') {
-      this.certError.set(event.data.error ?? 'Error desconocido');
-      this.certLoading.set(false);
+      this.failCertificateRead(event.data.error ?? 'Error desconocido');
     }
   };
 
@@ -171,10 +185,11 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
     this.destroyRef.onDestroy(() => {
       window.removeEventListener('message', this.certMessageListener);
+      this.removeCertFrame();
     });
 
     /**
-     * RF-001: abrir el popup de certificado automáticamente al entrar sin
+     * RF-001: lanzar el selector de certificado automáticamente al entrar sin
      * datos previos.
      *
      * effect() requiere injection context — se pasa { injector } para llamarlo desde ngOnInit.
@@ -184,9 +199,9 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
       const loading = this.certLoading();
       const error = this.certError();
 
-      // Only auto-open the popup on first entry (no prior error).
+      // Only auto-launch the certificate selector on first entry (no prior error).
       // Without the error guard the effect re-fires after every failure,
-      // creating a silent tight loop in Edge (popup blocker returns null → !loading → effect → ...).
+      // creating a silent tight loop (failure → !loading → effect → ...).
       if (data === null && !loading && error === null) {
         this.handleCertificateSelect();
       }
@@ -199,43 +214,56 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
 
   // ── Handlers ──────────────────────────────────────────────────────────────
 
-  /** Abre el popup mTLS hacia el cert-server para lectura del certificado. */
+  /**
+   * Lanza la lectura del certificado en un iframe oculto hacia el cert-server:
+   * el navegador muestra directamente su selector de certificado (handshake
+   * mTLS) sin ventana emergente intermedia. El resultado llega por
+   * postMessage (certMessageListener).
+   */
   protected handleCertificateSelect(): void {
     this.certLoading.set(true);
     this.certError.set(null);
     this.certData.set(null);
+    this.certPending = false;
+    this.removeCertFrame();
 
-    const popupWidth = 520;
-    const popupHeight = 420;
-    const left = Math.round(window.screenX + (window.innerWidth - popupWidth) / 2);
-    const top = Math.round(window.screenY + (window.innerHeight - popupHeight) / 2);
+    const frame = document.createElement('iframe');
+    frame.title = 'cert-auth';
+    frame.setAttribute('aria-hidden', 'true');
+    frame.style.display = 'none';
+    frame.src =
+      `${this.certServerOrigin()}/issuance-portal/api/cert-auth` +
+      `?origin=${encodeURIComponent(window.location.origin)}&t=${Date.now()}`;
 
-    const popup = window.open(
-      `${this.certServerOrigin()}/issuance-portal/api/cert-auth?origin=${encodeURIComponent(window.location.origin)}`,
-      'cert-auth',
-      `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes`,
-    );
-
-    if (!popup) {
-      this.certError.set(
-        'No se pudo abrir la ventana de selección de certificado. ' +
-          'Comprueba que las ventanas emergentes están habilitadas en tu navegador.',
-      );
-      this.certLoading.set(false);
-      return;
-    }
-
-    const checkClosed = setInterval(() => {
-      if (popup.closed) {
-        clearInterval(checkClosed);
-        if (this.certLoading()) {
-          this.certError.set(
-            'La ventana de selección de certificado se ha cerrado sin completar la autenticación.',
+    // Si el iframe carga pero no anuncia que espera la selección
+    // (CERT_AUTH_PENDING) ni devuelve resultado, el handshake mTLS falló
+    // (selección cancelada, sin certificado, error de red).
+    frame.addEventListener('load', () => {
+      clearTimeout(this.certLoadCheck);
+      this.certLoadCheck = setTimeout(() => {
+        if (this.certLoading() && !this.certPending) {
+          this.failCertificateRead(
+            'No se pudo completar la lectura del certificado. ' +
+              'Verifica que tienes un certificado digital instalado.',
           );
-          this.certLoading.set(false);
         }
-      }
-    }, 500);
+      }, CERT_FRAME_LOAD_GRACE_MS);
+    });
+
+    document.body.appendChild(frame);
+    this.certFrame = frame;
+  }
+
+  private failCertificateRead(error: string): void {
+    this.certError.set(error);
+    this.certLoading.set(false);
+    this.removeCertFrame();
+  }
+
+  private removeCertFrame(): void {
+    clearTimeout(this.certLoadCheck);
+    this.certFrame?.remove();
+    this.certFrame = null;
   }
 
   /** Autentica con los datos del certificado leído. */
