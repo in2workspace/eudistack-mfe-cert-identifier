@@ -22,8 +22,13 @@ function certFrames(): HTMLIFrameElement[] {
   return Array.from(document.querySelectorAll<HTMLIFrameElement>('iframe[title="cert-auth"]'));
 }
 
-function postFromCertServer(data: unknown, origin = window.location.origin): void {
-  window.dispatchEvent(new MessageEvent('message', { data, origin }));
+/** Simula un postMessage del iframe de cert-auth en curso (o de `source`, si se indica). */
+function postFromCertServer(
+  data: unknown,
+  origin = window.location.origin,
+  source: Window | null = certFrames()[0]?.contentWindow ?? null,
+): void {
+  window.dispatchEvent(new MessageEvent('message', { data, origin, source }));
 }
 
 describe('ClaveAuthComponent', () => {
@@ -86,6 +91,14 @@ describe('ClaveAuthComponent', () => {
 
   it('ignora mensajes de otros orígenes', () => {
     postFromCertServer({ type: 'CERT_AUTH_SUCCESS', data: CERT }, 'https://evil.example');
+
+    expect(component.certData()).toBeNull();
+    expect(component.certLoading()).toBe(true);
+    expect(certFrames()).toHaveLength(1);
+  });
+
+  it('ignora mensajes del mismo origen que no vienen del iframe de cert-auth', () => {
+    postFromCertServer({ type: 'CERT_AUTH_SUCCESS', data: CERT }, window.location.origin, window);
 
     expect(component.certData()).toBeNull();
     expect(component.certLoading()).toBe(true);

@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Selector de certificado sin ventana emergente**: la autenticación con Certificado Digital carga el cert-server en un iframe oculto en lugar de abrir un popup con `window.open`; el navegador muestra directamente su selector de certificado. Si el iframe carga y no llega ni resultado ni `CERT_AUTH_PENDING` en 3 s, se muestra el error con "Reintentar". Requiere la versión de `eudistack-enterprise-cert-identifier-service` que publica el resultado a `window.parent`.
-
 - **EUD-38 — allowlist de licencias unificada**: `.github/license-policy.json` es ahora la transcripción íntegra de `conv-quality-security-gates.md` §16.1, idéntica en los trece repositorios con gate. Añade `LGPL-2.1-only`, la grafía SPDX vigente del mismo permiso que `LGPL-2.1`, que ya estaba admitido: `logback` 1.5.34 la declara así y el gate la bloqueaba por la grafía, no por la licencia.
 
 ### Added

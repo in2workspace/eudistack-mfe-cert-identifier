@@ -156,6 +156,9 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
   /** Listener de postMessage — equivalente al useCallback+useEffect del original React. */
   private readonly certMessageListener = (event: MessageEvent): void => {
     if (event.origin !== this.certServerOrigin()) return;
+    // Solo se aceptan mensajes del iframe de cert-auth en curso, no de otras
+    // ventanas del mismo origen.
+    if (!this.certFrame || event.source !== this.certFrame.contentWindow) return;
 
     if (event.data?.type === 'CERT_AUTH_PENDING') {
       this.certPending = true;
