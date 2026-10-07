@@ -158,7 +158,8 @@ export class ClaveAuthComponent implements OnInit, OnDestroy {
     if (event.origin !== this.certServerOrigin()) return;
     // Solo se aceptan mensajes del iframe de cert-auth en curso, no de otras
     // ventanas del mismo origen.
-    if (!this.certFrame || event.source !== this.certFrame.contentWindow) return;
+    // Sin iframe activo, contentWindow es undefined y event.source nunca lo es.
+    if (event.source !== this.certFrame?.contentWindow) return;
 
     if (event.data?.type === 'CERT_AUTH_PENDING') {
       this.certPending = true;
